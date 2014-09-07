@@ -8,7 +8,7 @@ You may want to read Kelsey Hightower's [Running Kubernettes Example on CoreOS, 
 
 Kelsey assumes VMWare Fusion above. As the [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
 
-The Makefile included runs through the steps in an automated fashion.
+The start.sh script included runs through the steps in an automated fashion.
 
 Prerequisites:
 
