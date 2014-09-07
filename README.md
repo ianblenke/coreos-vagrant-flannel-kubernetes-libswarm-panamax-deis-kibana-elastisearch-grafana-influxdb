@@ -27,11 +27,12 @@ The `vagrant up` will bootstrap the coreos nodes with rudder, and docker will be
 
 The config.rb referenced by the Vagrantfile will populate the `ETCD_DISCOVERY_URL` in the user-data file.
 All nodes will start with the generated user-data file.
-The kublete.service is then provisioned with a unique private IP on each nodes.
+
 Finally, the master node is provisioned to start the apiserver and controller-manager.
 
-The only services not automatically installed by a `vagrant up` are the kublete, apiserver, and controller-manager services.
-The `start.sh` script programatically automatically generates these by looking at the deployed coreos fleet.
+The only services not automatically installed by a `vagrant up` are the master's apiserver, and controller-manager services.
+
+The `start.sh` script is really little more than a wrapper for preparing the master separately than the other minions.
 
 The only hard-coded IP is the rudder subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
 All other IP information is discovered via vagrant ssh into the coreos nodes.

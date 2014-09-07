@@ -7,8 +7,12 @@ coreos:
     #discovery: https://discovery.etcd.io/<token>
     addr: $public_ipv4:4001
     peer-addr: $public_ipv4:7001
+    # give etcd more time if it's under heavy load - prevent leader election thrashing
+    peer-election-timeout: 2000
+    peer-heartbeat-interval: 500
   fleet:
     public-ip: $public_ipv4
+    etcd_request_timeout: 3
   units:
     - name: etcd.service
       command: start

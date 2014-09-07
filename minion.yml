@@ -2,12 +2,12 @@
       command: start
       content: |
         [Unit]
+        Requires=docker.service
         After=docker.service
 
         [Service]
         ExecStart=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
-        ExecStart=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i -t --name rudder-build google/golang /bin/bash -c "cd /opt/rudder && ./build"
-        ExecStart=-/usr/bin/docker rm rudder-build
+        ExecStart=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -c "cd /opt/rudder && ./build"
         RemainAfterExit=yes
         Type=oneshot
     - name: rudder.service
@@ -23,6 +23,7 @@
         ExecStartPre=-/usr/bin/etcdctl set /coreos.com/network/config '{"Network":"172.30.0.0/16"}'
         ExecStart=/opt/rudder/bin/rudder
         Restart=on-failure
+        TimeoutSec=10
         RestartSec=5
 
         [Install]
@@ -35,16 +36,19 @@
         Description=Docker Service using Rudder
         Requires=rudder.service
         After=rudder.service
-        Conflicts=docker.socket docker.service
+        ConditionFileNotEmpty=/run/rudder/subnet.env
 
         [Service]
         EnvironmentFile=/run/rudder/subnet.env
-        ExecStartPre=-/usr/bin/ip link set dev docker0 down
-        ExecStartPre=-/usr/sbin/brctl delbr docker0
-        ExecStartPre=-/usr/bin/cat /run/rudder/subnet.env
-        ExecStartPre=-/usr/bin/bash -xc 'while ! grep RUDDER_SUBNET /run/rudder/subnet.env; do sleep 5; done'
+        ExecStartPre=-/usr/bin/ip link set dev docker0 down ; /usr/bin/true
+        ExecStartPre=-/usr/sbin/brctl delbr docker0 ; /usr/bin/true
+        ExecStartPre=-/usr/bin/systemctl disable docker-tcp.socket
+        ExecStartPre=-/usr/bin/systemctl stop docker-tcp.socket
+        ExecStartPre=-/usr/bin/systemctl disable docker.service
+        ExecStartPre=-/usr/bin/systemctl stop docker.service
         ExecStart=/usr/bin/docker -d -s=btrfs -H fd:// --bip=${RUDDER_SUBNET} --mtu=${RUDDER_MTU}
         Restart=on-failure
+        TimeoutSec=10
         RestartSec=5
 
         [Install]
@@ -55,6 +59,8 @@
       content: |
         [Unit]
         Description=Docker Socket for the API
+        Conflicts=docker-tcp.socket
+        After=docker-rudder.service
 
         [Socket]
         ListenStream=2375
@@ -98,6 +104,34 @@
         [Service]
         ExecStart=/opt/bin/proxy --etcd_servers=http://127.0.0.1:4001 --logtostderr=true
         Restart=always
+        TimeoutSec=10
+        RestartSec=10
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: kubelet.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        After=etcd.service
+        After=download-kubernetes.service
+        ConditionFileIsExecutable=/opt/bin/kubelet
+        Description=Kubernetes Kubelet
+        Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+        Wants=etcd.service
+        Wants=download-kubernetes.service
+        Requires=docker-rudder.service
+
+        [Service]
+        ExecStart=/bin/bash -c "exec /opt/bin/kubelet \
+        --address=0.0.0.0 \
+        --port=10250 \
+        --hostname_override=$( ID=$(curl -sL http://127.0.0.1:4001/v2/stats/self | sed -e 's/^.*\"name\":\"//' -e 's/\".*$//' -e 's/\r//g'); fleetctl list-machines -fields=machine,ip -full -no-legend | grep $ID | awk '{print $2}' | tr -d '\r') \
+        --etcd_servers=http://127.0.0.1:4001 \
+        --logtostderr=true"
+        Restart=always
+        TimeoutSec=10
         RestartSec=10
 
         [Install]
