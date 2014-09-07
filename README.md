@@ -1,3 +1,49 @@
+# Kubernettes on CoreOS
+
+This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [rudder](https://github.com/coreos/rudder) and Kelsey Hightower's [kubernettes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
+
+Technically, rudder isn't neccessary to get coreos working with kubernettes and vagrant. The point of this project is to gain some experience with rudder and kubernettes for eventual deployment in the cloud.
+
+You may want to read Kelsey Hightower's [Running Kubernettes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernettes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
+
+Kelsey assumes VMWare Fusion above. As the [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
+
+The Makefile included runs through the steps in an automated fashion.
+
+Prerequisites:
+
+- [VirtualBox](http://virtualbox.org), as the Vagrantfile and config.rb assume port forwarding is in place.
+
+# Usage:
+
+Run `./start.sh`
+
+Note: This bootstraps through pulling down a golang docker container and compiling rudder, so it takes a bit to get going. Give it some time. Be patient. :)
+
+# Implementation Details:
+
+This script will generate a user-data script that is the concatenation of the user-data.sample and minion.yml files.
+The `vagrant up` will bootstrap the coreos nodes with rudder, and docker will be restarted to use it.
+
+The config.rb referenced by the Vagrantfile will populate the `ETCD_DISCOVERY_URL` in the user-data file.
+All nodes will start with the generated user-data file.
+The kublete.service is then provisioned with a unique private IP on each nodes.
+Finally, the master node is provisioned to start the apiserver and controller-manager.
+
+The only services not automatically installed by a `vagrant up` are the kublete, apiserver, and controller-manager services.
+The `start.sh` script programatically automatically generates these by looking at the deployed coreos fleet.
+
+The only hard-coded IP is the rudder subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
+All other IP information is discovered via vagrant ssh into the coreos nodes.
+
+# Cloud deployment
+
+As this is all standard vagrant faire, it should be possible to use [mitchellh/vagrant-aws](https://github.com/mitchellh/vagrant-aws) or other vagrant cloud plugins to deploy this to the cloud instead of locally for testing. If you manage to get any of these working, a pull request is most welcomed!
+
+You may also be interested in [bketelsen/coreos-kubernetes-digitalocean](https://github.com/bketelsen/coreos-kubernetes-digitalocean), which was helpful in generating this project.
+
+Everything below this point in the README is from the original CoreOS Vagrant project upon which this fork is based.
+
 # CoreOS Vagrant
 
 This repo provides a template Vagrantfile to create a CoreOS virtual machine using the VirtualBox software hypervisor.
