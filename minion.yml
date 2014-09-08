@@ -8,7 +8,7 @@
 
         [Service]
         ExecStart=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
-        ExecStart=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -c "cd /opt/rudder && ./build"
+        ExecStart=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -xc "cd /opt/rudder && ./build"
         RemainAfterExit=yes
         Type=oneshot
     - name: rudder.service
@@ -42,8 +42,8 @@
 
         [Service]
         EnvironmentFile=/run/rudder/subnet.env
-        #ExecStartPre=-/usr/bin/ip link set dev docker0 down ; /usr/bin/true
-        #ExecStartPre=-/usr/sbin/brctl delbr docker0 ; /usr/bin/true
+        ExecStartPre=-/usr/bin/ip link set dev docker0 down ; /usr/bin/true
+        ExecStartPre=-/usr/sbin/brctl delbr docker0 ; /usr/bin/true
         ExecStart=/usr/bin/docker -d -s=btrfs -H fd:// --bip=${RUDDER_SUBNET} --mtu=${RUDDER_MTU}
         Restart=on-failure
         TimeoutSec=10
@@ -122,7 +122,7 @@
         Requires=docker-rudder.service
 
         [Service]
-        ExecStart=/bin/bash -c "exec /opt/bin/kubelet \
+        ExecStart=/bin/bash -xc "exec /opt/bin/kubelet \
         --address=0.0.0.0 \
         --port=10250 \
         --hostname_override=$( ID=$(curl -sL http://127.0.0.1:4001/v2/stats/self | sed -e 's/^.*\"name\":\"//' -e 's/\".*$//' -e 's/\r//g'); fleetctl list-machines -fields=machine,ip -full -no-legend | grep $ID | awk '{print $2}' | tr -d '\r') \
