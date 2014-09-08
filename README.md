@@ -20,6 +20,45 @@ Run `./start.sh`
 
 Note: This bootstraps through pulling down a golang docker container and compiling rudder, so it takes a bit to get going. Give it some time. Be patient. :)
 
+# Preparation:
+
+You will also want to install the `kubecfg` command.
+
+    ./install_kubecfg_client.sh
+
+As this is a binary, this is NOT being run automatically as part of the start.sh.
+While this is an official google kubernettes binary, and it does use HTTPS to download, but there is no signature verification.
+This works both with OS/X Darwin and with Linux.
+
+The default kubeletes apiserver host is "localhost" and the default port is "8080". 
+You may need to port-forward 8080 to use kubecfg locally if not run on the master.
+To port forward using vagrant ssh, do this:
+
+    vagrant ssh core-01 -- -L 8080:localhost:8080
+
+This will let you run the kubecfg command locally without having to specify the `-h http://hostname:port` parameter.
+
+You can also run this `install_kubecfg_client.sh` script on a coreos host:
+
+    ./install_kubecfg_client.sh core-01
+
+NOTE: You would have to do this everytime you do a "vagrant destroy" followed by a "vagrant up" as the coreos nodes will be completely new.
+
+
+Using kubecfg:
+
+To list the current pods:
+
+    kubecfg list /pods
+
+To run a pod:
+
+    kubecfg -c pods/redis.json create /pods
+
+There are other pods in the pods/ folder of this project. At the moment, it is only redis.json, but rest assured there will be others soon.
+
+If you have any further questions, join us on IRC via [freenode](https://freenode.net/) in either [#coreos](http://webchat.freenode.net/?channels=coreos) or [#google-containers](http://webchat.freenode.net/?channels=google-containers)
+
 # Implementation Details:
 
 This script will generate a user-data script that is the concatenation of the user-data.sample and minion.yml files.
