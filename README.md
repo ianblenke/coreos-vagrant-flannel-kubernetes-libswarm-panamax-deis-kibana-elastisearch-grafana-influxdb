@@ -23,7 +23,7 @@ You will also want to install the `kubecfg` command.
     ./install_kubecfg_client.sh
 
 As this is a binary, this is NOT being run automatically as part of the start.sh.
-While this is an official google kubernettes binary, and it does use HTTPS to download, but there is no signature verification.
+While this is an official google kubernettes binary via an HTTPS wget, there is no signature verification.
 This works both with OS/X Darwin and with Linux.
 
 The default kubeletes apiserver host is "localhost" and the default port is "8080". 
