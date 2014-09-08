@@ -4,6 +4,7 @@
         [Unit]
         Requires=docker.service
         After=docker.service
+        Before=rudder.service
 
         [Service]
         ExecStart=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
@@ -15,7 +16,7 @@
       enable: true
       content: |
         [Unit]
-        Requires=etcd.service rudder-build.service network.target
+        Requires=etcd.service network.target
         ConditionFileIsExecutable=/opt/rudder/bin/rudder
         After=rudder-build.service
 
@@ -35,17 +36,14 @@
         [Unit]
         Description=Docker Service using Rudder
         Requires=rudder.service
+        Conflicts=docker.service
         After=rudder.service
         ConditionFileNotEmpty=/run/rudder/subnet.env
 
         [Service]
         EnvironmentFile=/run/rudder/subnet.env
-        ExecStartPre=-/usr/bin/ip link set dev docker0 down ; /usr/bin/true
-        ExecStartPre=-/usr/sbin/brctl delbr docker0 ; /usr/bin/true
-        ExecStartPre=-/usr/bin/systemctl disable docker-tcp.socket
-        ExecStartPre=-/usr/bin/systemctl stop docker-tcp.socket
-        ExecStartPre=-/usr/bin/systemctl disable docker.service
-        ExecStartPre=-/usr/bin/systemctl stop docker.service
+        #ExecStartPre=-/usr/bin/ip link set dev docker0 down ; /usr/bin/true
+        #ExecStartPre=-/usr/sbin/brctl delbr docker0 ; /usr/bin/true
         ExecStart=/usr/bin/docker -d -s=btrfs -H fd:// --bip=${RUDDER_SUBNET} --mtu=${RUDDER_MTU}
         Restart=on-failure
         TimeoutSec=10
