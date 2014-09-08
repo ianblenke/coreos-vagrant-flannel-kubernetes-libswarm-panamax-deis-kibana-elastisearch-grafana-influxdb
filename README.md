@@ -53,6 +53,14 @@ To run a pod:
 
 There are other pods in the pods/ folder of this project. At the moment, it is only redis.json, but rest assured there will be others soon.
 
+Should you find yourself on the master wishing you had the pods/ folder from this project, you can run this locally to copy the folder over to that coreos node:
+
+    tar cf - pods/ | vagrant ssh core-01 -c 'tar xf -'
+
+Alternatively, you can follow the Shared Folder Setup below to share this project folder to your coreos nodes.
+By commenting out the shared folder line in the Vagrantfile, you will be prompted for your password when you `vagrant up` as it attempts to configure your system to share the project folder using NFS.
+This is defaulted as off to avoid as much required privilege as possible.
+
 If you have any further questions, join us on IRC via [freenode](https://freenode.net/) in either [#coreos](http://webchat.freenode.net/?channels=coreos) or [#google-containers](http://webchat.freenode.net/?channels=google-containers)
 
 # Implementation Details:
