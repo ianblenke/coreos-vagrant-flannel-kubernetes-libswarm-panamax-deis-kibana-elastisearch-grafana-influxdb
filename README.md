@@ -10,10 +10,6 @@ Kelsey assumes VMWare Fusion above. As the [CoreOS Vagrant](https://github.com/c
 
 The start.sh script included runs through the steps in an automated fashion.
 
-Prerequisites:
-
-- [VirtualBox](http://virtualbox.org), as the Vagrantfile and config.rb assume port forwarding is in place.
-
 # Usage:
 
 Run `./start.sh`
