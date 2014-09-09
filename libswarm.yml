@@ -2,7 +2,6 @@
       command: start
       content: |
         [Unit]
-        Requires=docker-rudder.service
         After=docker-rudder.service
         Before=libswarm.service
 
@@ -16,12 +15,12 @@
       enable: true
       content: |
         [Unit]
-        Requires=etcd.service network.target docker-rudder.service
-        ConditionFileIsExecutable=/opt/libswarm/bin/libswarmd
+        Requires=etcd.service network.target
+        ConditionFileIsExecutable=/opt/libswarm/bin/swarmd
         After=libswarm-build.service
 
         [Service]
-        ExecStart=/opt/libswarm/bin/swarmd 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo "'dockerclient tcp://%:2375'" )
+        ExecStart=/bin/bash -cx "/opt/libswarm/bin/swarmd 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo \"'dockerclient tcp://%:2375'\" )"
         Restart=on-failure
         TimeoutSec=10
         RestartSec=5
