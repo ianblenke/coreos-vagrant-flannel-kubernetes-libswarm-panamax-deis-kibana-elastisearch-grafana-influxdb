@@ -1,0 +1,33 @@
+#cloud-config
+
+coreos:
+  units:
+    - name: libswarm-build.service
+      command: start
+      content: |
+        [Unit]
+        After=rudder-build.service
+        Before=libswarm.service
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir -p /opt/libswarm
+        ExecStart=/usr/bin/docker run -i -t -v /opt/libswarm:/gopath google/golang /bin/bash -xc 'go get github.com/docker/libswarm; cd $GOPATH/src/github.com/docker/libswarm ; make deps ; apt-get -y install bzr; go install github.com/docker/libswarm/swarmd'
+        RemainAfterExit=yes
+        Type=oneshot
+    - name: libswarm.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Requires=etcd.service network.target
+        ConditionFileIsExecutable=/opt/libswarm/bin/libswarmd
+        After=libswarm-build.service docker-rudder.service
+
+        [Service]
+        ExecStart=/opt/libswarm/bin/swarmd 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo "'dockerclient tcp://%:2375'" )
+        Restart=on-failure
+        TimeoutSec=10
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
