@@ -1,12 +1,9 @@
-#cloud-config
-
-coreos:
-  units:
     - name: libswarm-build.service
       command: start
       content: |
         [Unit]
-        After=rudder-build.service
+        Requires=docker-rudder.service
+        After=docker-rudder.service
         Before=libswarm.service
 
         [Service]
@@ -19,9 +16,9 @@ coreos:
       enable: true
       content: |
         [Unit]
-        Requires=etcd.service network.target
+        Requires=etcd.service network.target docker-rudder.service
         ConditionFileIsExecutable=/opt/libswarm/bin/libswarmd
-        After=libswarm-build.service docker-rudder.service
+        After=libswarm-build.service
 
         [Service]
         ExecStart=/opt/libswarm/bin/swarmd 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo "'dockerclient tcp://%:2375'" )

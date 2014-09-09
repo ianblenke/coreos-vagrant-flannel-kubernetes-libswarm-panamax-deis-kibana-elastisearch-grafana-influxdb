@@ -1,7 +1,3 @@
-#cloud-config
-
-coreos:
-  units:
     - name: panamax-api.service
       command: start
       content: |
@@ -14,7 +10,8 @@ coreos:
         EnvironmentFile=/run/rudder/subnet.env
         ExecStartPre=-/usr/bin/mkdir -p /run/panamax
         ExecStartPre=-/usr/bin/git clone https://github.com/CenturyLinkLabs/panamax-api /opt/panamax-api
-        ExecStart=/bin/bash -xc "NODE=$(echo ${RUDDER_SUBNET} | cut -d /) exec /usr/bin/docker run --name panamax-api-build /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://$NODE:4001 -e JOURNAL_ENDPOINT=http://$NODE:19531 -e DOCKER_HOST=tcp://$NODE:4243 centurylink/panamax-ruby-base /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; rails server'"
+        ExecStartPre=-/bin/bash -xc 'echo -n $(echo ${RUDDER_SUBNET} | cut -d/ -r1) > /run/panamax/node'
+        ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-api-build /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://$(cat /run/panamax/node):4001 -e JOURNAL_ENDPOINT=http://$(cat /run/panamax/node):19531 -e DOCKER_HOST=tcp://$(cat /run/panamax/node):4243 centurylink/panamax-ruby-base /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; rails server'"
         RemainAfterExit=yes
     - name: panamax-ui.service
       command: start

@@ -6,8 +6,8 @@ COREOS_CHANNEL=${COREOS_CHANNEL:-alpha}
 NUM_INSTANCES=${NUM_INSTANCES:-3}
 
 ENABLE_KUBERNETES=${ENABLE_KUBERNETS:-true}
-ENABLE_LIBSWARM=${ENABLE_LIBSWARM:-true}
-ENABLE_PANAMAX=${ENABLE_PANAMAX:-true}
+ENABLE_LIBSWARM=${ENABLE_LIBSWARM:-false}
+ENABLE_PANAMAX=${ENABLE_PANAMAX:-false}
 
 export COREOS_MEMORY COREOS_CPUS COREOS_CHANNEL NUM_INSTANCES
 
@@ -18,7 +18,7 @@ which vagrant || (
   false
 )
 
-cat user-data.sample > user-data
+cat user-data.sample rudder.yml > user-data
 
 [ "$ENABLE_KUBERNETES" = "true" ] && cat kubernetes-minion.yml >> user-data
 [ "$ENABLE_LIBSWARM" = "true" ] && cat libswarm.yml >> user-data
