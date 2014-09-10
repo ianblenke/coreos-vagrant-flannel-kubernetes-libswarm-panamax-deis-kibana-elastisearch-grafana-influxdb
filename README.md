@@ -86,6 +86,8 @@ As this is all standard vagrant faire, it should be possible to use [mitchellh/v
 
 You may also be interested in [bketelsen/coreos-kubernetes-digitalocean](https://github.com/bketelsen/coreos-kubernetes-digitalocean), which was helpful in generating this project.
 
+Also, [metral/corekube](https://github.com/metral/corekube) is another recent effort by @mikemetral for OpenStack/Rackspace Heat template deployment of CoreOS/Kubernetes. See Mike's (blog post)[http://bit.ly/Zh4C93] for more information.
+
 Everything below this point in the README is from the original CoreOS Vagrant project upon which this fork is based.
 
 # CoreOS Vagrant
