@@ -20,7 +20,7 @@
         After=libswarm-build.service
 
         [Service]
-        ExecStart=/bin/bash -cx "/opt/libswarm/bin/swarmd 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo \"'dockerclient tcp://%:2375'\" )"
+        ExecStart=/bin/bash -cx "/opt/libswarm/bin/swarmd $(IFS=$'\\n' echo 'dockerserver tcp://localhost:4243' 'debug' $(/usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo \"dockerclient tcp://%:2375\" ) )"
         Restart=on-failure
         TimeoutSec=10
         RestartSec=5
