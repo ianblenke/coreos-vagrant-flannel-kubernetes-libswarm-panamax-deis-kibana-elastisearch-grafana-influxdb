@@ -1,10 +1,10 @@
-# Kubernettes on CoreOS
+# Kubernetes on CoreOS
 
-This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [rudder](https://github.com/coreos/rudder) and Kelsey Hightower's [kubernettes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
+This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [rudder](https://github.com/coreos/rudder) and Kelsey Hightower's [kubernetes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
 
-Technically, rudder isn't neccessary to get coreos working with kubernettes and vagrant. The point of this project is to gain some experience with rudder and kubernettes for eventual deployment in the cloud.
+Technically, rudder isn't neccessary to get coreos working with kubernetes and vagrant. The point of this project is to gain some experience with rudder and kubernetes for eventual deployment in the cloud.
 
-You may want to read Kelsey Hightower's [Running Kubernettes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernettes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
+You may want to read Kelsey Hightower's [Running Kubernetes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernetes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
 
 Kelsey assumes VMWare Fusion above. As the [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
 
@@ -23,7 +23,7 @@ You will also want to install the `kubecfg` command.
     ./install_kubecfg_client.sh
 
 As this is a binary, this is NOT being run automatically as part of the start.sh.
-While this is an official google kubernettes binary via an HTTPS wget, there is no signature verification.
+While this is an official google kubernetes binary via an HTTPS wget, there is no signature verification.
 This works both with OS/X Darwin and with Linux.
 
 The default kubeletes apiserver host is "localhost" and the default port is "8080". 
