@@ -7,7 +7,7 @@
 
         [Service]
         ExecStartPre=-/usr/bin/mkdir -p /opt/libswarm
-        ExecStart=/usr/bin/docker run -i -t -v /opt/libswarm:/gopath google/golang /bin/bash -xc 'go get github.com/docker/libswarm; cd $GOPATH/src/github.com/docker/libswarm ; make deps ; apt-get -y install bzr; go install github.com/docker/libswarm/swarmd'
+        ExecStart=/usr/bin/docker run -v /opt/libswarm:/gopath --name libswarm-build google/golang /bin/bash -xc 'go get github.com/docker/libswarm; cd $GOPATH/src/github.com/docker/libswarm ; make deps ; apt-get -y install bzr; go install github.com/docker/libswarm/swarmd'
         RemainAfterExit=yes
         Type=oneshot
     - name: libswarm.service
@@ -15,7 +15,6 @@
       enable: true
       content: |
         [Unit]
-        Requires=etcd.service network.target
         ConditionFileIsExecutable=/opt/libswarm/bin/swarmd
         After=libswarm-build.service
 
@@ -24,6 +23,7 @@
         ExecStartPre=/bin/bash -c '/usr/bin/echo "#!/bin/bash" > /run/libswarm/script'
         ExecStartPre=/bin/bash -c "echo exec /opt/libswarm/bin/swarmd $( (echo dockerserver tcp://localhost:4243 ; echo debug; /usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo dockerclient tcp://%:2375 ) | xargs -l1 -i% echo \\\'%\\\' ) >> /run/libswarm/script"
         ExecStartPre=/usr/bin/chmod +x /run/libswarm/script
+        ExecStartPre=-/usr/bin/systemctl start docker-rudder
         ExecStart=/run/libswarm/script
         Restart=on-failure
         TimeoutSec=10

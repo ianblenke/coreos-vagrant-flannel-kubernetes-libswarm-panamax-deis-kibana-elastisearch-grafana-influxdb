@@ -2,7 +2,9 @@
       command: start
       content: |
         [Unit]
-        Requires=etcd fleet systemd-journal-gatewayd.socket
+        Requires=etcd
+        Requires=fleet
+        Requires=systemd-journal-gatewayd.socket
         After=libswarm.service
         ConditionFileNotEmpty=/run/rudder/subnet.env
 

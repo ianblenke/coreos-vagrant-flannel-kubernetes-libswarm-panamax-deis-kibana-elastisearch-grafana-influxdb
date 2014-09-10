@@ -45,12 +45,12 @@
         [Unit]
         After=etcd.service
         After=download-kubernetes.service
+        After=docker-rudder.service
         ConditionFileIsExecutable=/opt/bin/kubelet
         Description=Kubernetes Kubelet
         Documentation=https://github.com/GoogleCloudPlatform/kubernetes
         Wants=etcd.service
         Wants=download-kubernetes.service
-        Requires=docker-rudder.service
 
         [Service]
         ExecStart=/bin/bash -xc "exec /opt/bin/kubelet \

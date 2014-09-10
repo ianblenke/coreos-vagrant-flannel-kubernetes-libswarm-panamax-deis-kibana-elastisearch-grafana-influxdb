@@ -7,8 +7,9 @@
         Before=rudder.service
 
         [Service]
-        ExecStart=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
-        ExecStart=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -xc "cd /opt/rudder && ./build"
+        ExecStartPre=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
+        ExecStartPre=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -xc "cd /opt/rudder && ./build"
+        ExecStart=/usr/bin/true
         RemainAfterExit=yes
         Type=oneshot
     - name: rudder.service
@@ -16,7 +17,8 @@
       enable: true
       content: |
         [Unit]
-        Requires=etcd.service network.target
+        Requires=etcd.service
+        Requires=network.target
         ConditionFileIsExecutable=/opt/rudder/bin/rudder
         After=rudder-build.service
 
@@ -35,7 +37,6 @@
       content: |
         [Unit]
         Description=Docker Service using Rudder
-        Requires=rudder.service
         Conflicts=docker.service
         After=rudder.service
         ConditionFileNotEmpty=/run/rudder/subnet.env
