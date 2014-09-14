@@ -1,0 +1,59 @@
+    - name: rudder-build.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        Before=rudder.service
+
+        [Service]
+        ExecStartPre=/usr/bin/git clone https://github.com/coreos/rudder /opt/rudder
+        ExecStartPre=/usr/bin/docker pull google/golang
+        ExecStartPre=/usr/bin/docker run -v /opt/rudder:/opt/rudder -i --name rudder-build google/golang /bin/bash -xc "cd /opt/rudder && ./build"
+        ExecStart=/usr/bin/echo "Rudder has been built in /opt/rudder"
+        RemainAfterExit=yes
+        Type=oneshot
+    - name: rudder.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Requires=etcd.service
+        Requires=network-online.target
+        ConditionFileIsExecutable=/opt/rudder/bin/rudder
+        After=rudder-build.service
+
+        [Service]
+        ExecStartPre=-/usr/bin/etcdctl set /coreos.com/network/config '{"Network":"172.30.0.0/16"}'
+        ExecStart=/opt/rudder/bin/rudder
+        Restart=on-failure
+        TimeoutSec=10
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+    - name: docker-rudder.service
+      command: start
+      enable: true
+      content: |
+        [Unit]
+        Description=Docker Service using Rudder
+        After=rudder.service
+        ConditionFileNotEmpty=/run/rudder/subnet.env
+
+        [Service]
+        Environment="TMPDIR=/var/tmp/"
+        LimitNOFILE=1048576
+        LimitNPROC=1048576
+        EnvironmentFile=/run/rudder/subnet.env
+        ExecStartPre=-/usr/bin/ip link set dev docker0 down
+        ExecStartPre=-/usr/sbin/brctl delbr docker0
+        ExecStartPre=-/usr/bin/systemctl stop docker.socket
+        ExecStartPre=-/usr/bin/systemctl stop docker-tcp.socket
+        ExecStartPre=-/usr/bin/systemctl stop docker.service
+        ExecStart=/usr/bin/docker -d -s=btrfs -H tcp://0.0.0.0:2375 -H unix:///var/run/docker.sock --bip=${RUDDER_SUBNET} --mtu=${RUDDER_MTU}
+        Restart=on-failure
+        TimeoutSec=10
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
