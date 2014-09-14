@@ -90,6 +90,27 @@ Also, [metral/corekube](https://github.com/metral/corekube) is another recent ef
 
 Everything below this point in the README is from the original CoreOS Vagrant project upon which this fork is based.
 
+# Panamax and libswarm
+
+This also supports spinning up a panamax cluster on top of libswarm. To enable this, export the following variables before running the `start.sh` script:
+
+    export ENABLE_LIBSWARM=true
+    export ENABLE_PANAMAX=true
+
+You can also disable Kubernetes entirely, if you would like:
+
+    export ENABLE_KUBERNETES=false
+
+Note: libswarm is currently under active development, so you may run into issues. Using Panamax this way is also entirely unanticipated.
+
+If you wish to access the panamax UI, forward port 3000 using vagrant ssh:
+
+    vagrant ssh core-01 -- -L 3000:localhost:3000
+
+Or by changing your vagrant VM settings as in the Panamax [How-To: Port Forwarding on Virtualbox](https://github.com/CenturyLinkLabs/panamax-ui/wiki/How-To%3A-Port-Forwarding-on-VirtualBox).
+
+Then open your web browser to http://localhost:3000
+
 # CoreOS Vagrant
 
 This repo provides a template Vagrantfile to create a CoreOS virtual machine using the VirtualBox software hypervisor.
