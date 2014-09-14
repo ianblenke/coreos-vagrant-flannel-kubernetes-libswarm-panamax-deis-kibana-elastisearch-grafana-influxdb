@@ -8,10 +8,16 @@ NUM_INSTANCES=${NUM_INSTANCES:-3}
 ENABLE_KUBERNETES=${ENABLE_KUBERNETS:-true}
 ENABLE_LIBSWARM=${ENABLE_LIBSWARM:-false}
 ENABLE_PANAMAX=${ENABLE_PANAMAX:-false}
+ENABLE_CADVISOR=${ENABLE_CADVISOR:-false}
 
 export COREOS_MEMORY COREOS_CPUS COREOS_CHANNEL NUM_INSTANCES
 
 set -e
+
+[ "$COREOS_CHANNEL" != "alpha" ] && [ "$ENABLE_CADVISOR" = "true" ] && (
+  echo "Cannot enable a global fleet unit without fleet 0.8.0 as available in the coreos 435 and later alpha release"
+  false
+)
 
 which vagrant || (
   echo "Vagrant is required for this project"
@@ -21,6 +27,7 @@ which vagrant || (
 cat user-data.sample rudder.yml > user-data
 
 [ "$ENABLE_KUBERNETES" = "true" ] && cat kubernetes-minion.yml >> user-data
+[ "$ENABLE_CADVISOR" = "true" ] && cat cadvisor.yml >> user-data
 [ "$ENABLE_LIBSWARM" = "true" ] && cat libswarm.yml >> user-data
 
 vagrant up
