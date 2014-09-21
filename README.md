@@ -1,8 +1,8 @@
 # Kubernetes on CoreOS
 
-This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [rudder](https://github.com/coreos/rudder) and Kelsey Hightower's [kubernetes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
+This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [flannel](https://github.com/coreos/flannel) and Kelsey Hightower's [kubernetes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
 
-Technically, rudder isn't neccessary to get coreos working with kubernetes and vagrant. The point of this project is to gain some experience with rudder and kubernetes for eventual deployment in the cloud.
+Technically, flannel isn't neccessary to get coreos working with kubernetes and vagrant. The point of this project is to gain some experience with flannel and kubernetes for eventual deployment in the cloud.
 
 You may want to read Kelsey Hightower's [Running Kubernetes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernetes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
 
@@ -14,7 +14,7 @@ The start.sh script included runs through the steps in an automated fashion.
 
 Run `./start.sh`
 
-Note: This bootstraps through pulling down a golang docker container and compiling rudder, so it takes a bit to get going. Give it some time. Be patient. :)
+Note: This bootstraps through pulling down a golang docker container and compiling flannel, so it takes a bit to get going. Give it some time. Be patient. :)
 
 # Preparation:
 
@@ -66,7 +66,7 @@ If you have any further questions, join us on IRC via [freenode](https://freenod
 # Implementation Details:
 
 This script will generate a user-data script that is the concatenation of the user-data.sample and minion.yml files.
-The `vagrant up` will bootstrap the coreos nodes with rudder, and docker will be restarted to use it.
+The `vagrant up` will bootstrap the coreos nodes with flannel, and docker will be restarted to use it.
 
 The config.rb referenced by the Vagrantfile will populate the `ETCD_DISCOVERY_URL` in the user-data file.
 All nodes will start with the generated user-data file.
@@ -77,7 +77,7 @@ The only services not automatically installed by a `vagrant up` are the master's
 
 The `start.sh` script is really little more than a wrapper for preparing the master separately than the other minions.
 
-The only hard-coded IP is the rudder subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
+The only hard-coded IP is the flannel subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
 All other IP information is discovered via vagrant ssh into the coreos nodes.
 
 # Cloud deployment

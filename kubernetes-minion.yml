@@ -45,7 +45,7 @@
         [Unit]
         After=etcd.service
         After=download-kubernetes.service
-        After=docker-rudder.service
+        After=docker-flannel.service
         ConditionFileIsExecutable=/opt/bin/kubelet
         Description=Kubernetes Kubelet
         Documentation=https://github.com/GoogleCloudPlatform/kubernetes

@@ -2,7 +2,7 @@
       command: start
       content: |
         [Unit]
-        After=docker-rudder.service
+        After=docker-flannel.service
         Before=libswarm.service
 
         [Service]
@@ -23,7 +23,7 @@
         ExecStartPre=/bin/bash -c '/usr/bin/echo "#!/bin/bash" > /run/libswarm/script'
         ExecStartPre=/bin/bash -c "echo exec /opt/libswarm/bin/swarmd $( (echo dockerserver tcp://0.0.0.0:4243 ; echo debug; /usr/bin/fleetctl list-machines -fields=ip -full -no-legend | xargs -l1 -i% echo dockerclient tcp://%:2375 ) | xargs -l1 -i% echo \\\'%\\\' ) >> /run/libswarm/script"
         ExecStartPre=/usr/bin/chmod +x /run/libswarm/script
-        ExecStartPre=-/usr/bin/systemctl start docker-rudder
+        ExecStartPre=-/usr/bin/systemctl start docker-flannel
         ExecStart=/run/libswarm/script
         Restart=on-failure
         TimeoutSec=10

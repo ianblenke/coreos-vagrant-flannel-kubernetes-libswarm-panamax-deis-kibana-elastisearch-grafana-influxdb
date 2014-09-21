@@ -8,13 +8,13 @@ coreos:
         [Unit]
         Requires=systemd-journal-gatewayd.socket
         After=libswarm.service
-        ConditionFileNotEmpty=/run/rudder/subnet.env
+        ConditionFileNotEmpty=/run/flannel/subnet.env
 
         [Service]
-        EnvironmentFile=/run/rudder/subnet.env
+        EnvironmentFile=/run/flannel/subnet.env
         ExecStartPre=-/usr/bin/mkdir -p /run/panamax
         ExecStartPre=-/usr/bin/git clone https://github.com/CenturyLinkLabs/panamax-api /opt/panamax-api
-        ExecStartPre=-/bin/bash -xc 'echo -n $(echo ${RUDDER_SUBNET} | cut -d/ -f1) > /run/panamax/node'
+        ExecStartPre=-/bin/bash -xc 'echo -n $(echo ${FLANNEL_SUBNET} | cut -d/ -f1) > /run/panamax/node'
         ExecStartPre=/usr/bin/docker pull centurylink/panamax-ruby-base
         ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax_api_build -v /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://$(cat /run/panamax/node):4001 -e JOURNAL_ENDPOINT=http://$(cat /run/panamax/node):19531 -e DOCKER_HOST=tcp://$(cat /run/panamax/node):4243 centurylink/panamax-ruby-base /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; exec rails server'"
         RemainAfterExit=yes
@@ -24,12 +24,12 @@ coreos:
       content: |
         [Unit]
         After=panamax-api.service
-        ConditionFileNotEmpty=/run/rudder/subnet.env
+        ConditionFileNotEmpty=/run/flannel/subnet.env
 
         [Service]
-        EnvironmentFile=/run/rudder/subnet.env
+        EnvironmentFile=/run/flannel/subnet.env
         ExecStartPre=/usr/bin/docker pull centurylink/panamax-ui
-        ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax_ui -e PMX_API_PORT_3000_TCP_ADDR=$(echo ${RUDDER_SUBNET} | cut -d/ -f1) -e PMX_API_PORT_3000_TCP_PORT=8888 -d -p 3000:3000 centurylink/panamax-ui"
+        ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax_ui -e PMX_API_PORT_3000_TCP_ADDR=$(echo ${FLANNEL_SUBNET} | cut -d/ -f1) -e PMX_API_PORT_3000_TCP_PORT=8888 -d -p 3000:3000 centurylink/panamax-ui"
         Restart=on-failure
         TimeoutSec=10
         RestartSec=5

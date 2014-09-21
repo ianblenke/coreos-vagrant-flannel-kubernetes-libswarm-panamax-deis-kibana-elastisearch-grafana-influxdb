@@ -18,7 +18,7 @@ which vagrant || (
   false
 )
 
-cat user-data.sample rudder.yml > user-data
+cat user-data.sample flannel.yml > user-data
 
 [ "$ENABLE_KUBERNETES" = "true" ] && cat kubernetes-minion.yml >> user-data
 [ "$ENABLE_LIBSWARM" = "true" ] && cat libswarm.yml >> user-data
