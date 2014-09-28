@@ -1,0 +1,129 @@
+  - path: /tmp/kubernetes-download@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=network-online.target
+      Before=kubelet.service
+      Before=proxy.service
+      Description=Download Kubernetes Binaries
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Requires=network-online.target
+      BindsTo=kubernetes-download@%i.service
+
+      [Service]
+      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/kubelet
+      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/proxy
+      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/apiserver
+      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/controller-manager
+      ExecStart=/usr/bin/chmod +x /opt/bin/kubelet
+      ExecStart=/usr/bin/chmod +x /opt/bin/proxy
+      ExecStart=/usr/bin/chmod +x /opt/bin/apiserver
+      ExecStart=/usr/bin/chmod +x /opt/bin/controller-manager
+      RemainAfterExit=yes
+      Type=oneshot
+
+      [X-Fleet]
+      Global=true
+  - path: /tmp/kubernetes-proxy@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=etcd.service
+      After=kubernetes-download.service
+      ConditionFileIsExecutable=/opt/bin/proxy
+      Description=Kubernetes Proxy
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd.service
+      Wants=kubernetes-download.service
+      BindTo=kubernetes-proxy@%i.service
+
+      [Service]
+      ExecStart=/opt/bin/proxy --etcd_servers=http://127.0.0.1:4001 --logtostderr=true
+      Restart=always
+      TimeoutSec=10
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+
+      [X-Fleet]
+      Global=true
+  - path: /tmp/kubernetes-kubelet.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=etcd.service
+      After=download-kubernetes.service
+      After=docker-flannel.service
+      ConditionFileIsExecutable=/opt/bin/kubelet
+      Description=Kubernetes Kubelet
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd.service
+      Wants=kubernetes-download.service
+
+      [Service]
+      ExecStart=/bin/bash -xc "exec /opt/bin/kubelet \
+      --address=0.0.0.0 \
+      --port=10250 \
+      --hostname_override=$( ID=$(curl -sL http://127.0.0.1:4001/v2/stats/self | sed -e 's/^.*\"name\":\"//' -e 's/\".*$//' -e 's/\r//g'); fleetctl list-machines -fields=machine,ip -full -no-legend | grep $ID | awk '{print $2}' | tr -d '\r') \
+      --etcd_servers=http://127.0.0.1:4001 \
+      --logtostderr=true"
+      Restart=always
+      TimeoutSec=10
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+
+      [X-Fleet]
+      Global=true
+  - path: /tmp/kubernetes-master.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=fleet.service
+      After=kubernetes-download.service
+      ConditionFileIsExecutable=/opt/bin/apiserver
+      Description=Kubernetes API Server
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd.service
+      Wants=kubernetes-download.service
+
+      [Service]
+      ExecStart=/bin/bash -xc "exec /opt/bin/apiserver \
+      --address=0.0.0.0 \
+      --port=8080 \
+      --etcd_servers=http://127.0.0.1:4001 \
+      --machines=$( echo $(fleetctl list-machines -fields=ip -full -no-legend) | sed -e 's/ /,/g' ) \
+      --logtostderr=true"
+      Restart=always
+      RestartSec=10
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /tmp/kubernetes-controller.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=etcd.service
+      After=kubernetes-download.service
+      ConditionFileIsExecutable=/opt/bin/controller-manager
+      Description=Kubernetes Controller Manager
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Wants=etcd.service
+      Wants=kubernetes-download.service
+
+      [Service]
+      ExecStart=/opt/bin/controller-manager \
+      --master=127.0.0.1:8080 \
+      --logtostderr=true
+      Restart=on-failure
+      RestartSec=1
+
+      [Install]
+      WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+    - name: panamax-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+
+        [Service]
+        ExecStart=/usr/bin/fleetctl start /tmp/panamax-api.service
+        ExecStart=/usr/bin/fleetctl start /tmp/panamax-ui.service
+        RemainAfterExit=no
+        Type=oneshot

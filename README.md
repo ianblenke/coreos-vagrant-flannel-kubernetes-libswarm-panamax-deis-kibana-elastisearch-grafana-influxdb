@@ -57,9 +57,11 @@ Should you find yourself on the master wishing you had the pods/ folder from thi
 
     tar cf - pods/ | vagrant ssh core-01 -c 'tar xf -'
 
-Alternatively, you can follow the Shared Folder Setup below to share this project folder to your coreos nodes.
-By commenting out the shared folder line in the Vagrantfile, you will be prompted for your password when you `vagrant up` as it attempts to configure your system to share the project folder using NFS.
-This is defaulted as off to avoid as much required privilege as possible.
+Alternatively, you can enable sharing of the project via NFS from your host over to /home/core/share in the guest by setting:
+
+    export USE_SHARED_FOLDER=1
+
+As this requires sudo access and asks you to enter your password to enable, this is defaulted as off to avoid as much required privilege as possible.
 
 If you have any further questions, join us on IRC via [freenode](https://freenode.net/) in either [#coreos](http://webchat.freenode.net/?channels=coreos) or [#google-containers](http://webchat.freenode.net/?channels=google-containers)
 

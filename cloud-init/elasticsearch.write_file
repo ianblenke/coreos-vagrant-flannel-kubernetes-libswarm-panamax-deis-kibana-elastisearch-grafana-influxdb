@@ -1,0 +1,47 @@
+  - path: /tmp/elasticsearch-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -ex
+      while [ ! -f /tmp/elasticsearch@.service ]; do echo Waiting for /tmp/elasticsearch@.service; sleep 1; done
+      cp /tmp/elasticsearch@.service /tmp/elasticsearch@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/elasticsearch@$(hostname).service
+      /usr/bin/fleetctl start /tmp/elasticsearch@$(hostname).service
+  - path: /tmp/elasticsearch@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=ElasticSearch service
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      TimeoutSec=180
+      EnvironmentFile=/etc/environment
+
+      ExecStartPre=/usr/bin/mkdir -p /data/elasticsearch
+      ExecStartPre=/usr/bin/docker pull dockerfile/elasticsearch
+
+      ExecStart=/bin/bash -xc '\
+        /usr/bin/docker run \
+          --name elasticsearch_$(hostname | tr - _)} \
+          --hostname elasticsearch-$(hostname} \
+          --publish 9200:9200 \
+          --publish 9300:9300 \
+          --volume /data/elasticsearch:/data \
+          dockerfile/elasticsearch \
+          /elasticsearch/bin/elasticsearch \
+          --node.name=elasticsearch-${hostname} \
+          --cluster.name=logstash \
+          --network.publish_host=${COREOS_PRIVATE_IPV4} \
+          --discovery.zen.ping.multicast.enabled=false \
+          --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)
+
+      ExecStop=/usr/bin/docker stop elasticsearch_$(hostname | tr - _)
+      ExecStop=/usr/bin/docker rm elasticserch_$(hostname | tr - _)
+      Restart=on-failure
+      RestartSec=10
+
+      [X-Fleet]

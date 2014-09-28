@@ -1,0 +1,13 @@
+    - name: kubernetes-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+
+        [Service]
+        ExecStart=/usr/bin/fleetctl start /run/fleet/units/kubernetes-download.service
+        ExecStart=/usr/bin/fleetctl start /run/fleet/units/kubernetes-proxy.service
+        ExecStart=/usr/bin/fleetctl start /run/fleet/units/kubernetes-kubelet.service
+        ExecStart=/usr/bin/bash -c "[ \"$(etcdctl get /_coreos.com/fleet/machines/$(etcdctl get /_coreos.com/fleet/lease/engine-leader)/object | sed -e 's/^.*PublicIP\\\":\\\"//' -e 's/\\\".*$//')" = \"${COREOS_PRIVATE_IPV4}\" ] && /usr/bin/fleetctl start /run/fleet/units/kubernetes-master.service && ExecStart=/usr/bin/fleetctl start /run/fleet/units/kubernetes-controller.service"
+        RemainAfterExit=no
+        Type=oneshot

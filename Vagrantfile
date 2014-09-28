@@ -29,10 +29,24 @@ end
 Vagrant.configure("2") do |config|
   config.vm.box = "coreos-%s" % $update_channel
   config.vm.box_version = ">= 308.0.1"
-  config.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json" % $update_channel
+
+  config.vm.provider :virtualbox do |vb, override|
+    config.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json" % $update_channel
+  end
 
   config.vm.provider :vmware_fusion do |vb, override|
     override.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant_vmware_fusion.json" % $update_channel
+  end
+
+  config.vm.provider :kvm do |vb, override|
+    response = Net::HTTP.get_response(URI("http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json" % $update_channel))
+    version = JSON.parse(response.body)["versions"].first["providers"].first["version"]
+    url = JSON.parse(response.body)["versions"].first["providers"].first["url"]
+
+    sh "vagrant --input_provider=virtualbox mutate #{url} kvm" if !File.exists?("package.box")
+    sh "vagrant box repackage coreos_production_vagrant kvm 0" if !File.exists?("package.box")
+    override.vm.box_url = "package.box"
+    config.vm.box_version = nil
   end
 
   config.vm.provider :virtualbox do |v|
@@ -89,7 +103,7 @@ Vagrant.configure("2") do |config|
       config.vm.network :private_network, ip: ip
 
       # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
-      config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=3,udp'] if ENV['USE_SHARED_FOLDER']
+      config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=2,udp'] if ENV['USE_SHARED_FOLDER']
 
       if File.exist?(CLOUD_CONFIG_PATH)
         config.vm.provision :file, :source => "#{CLOUD_CONFIG_PATH}", :destination => "/tmp/vagrantfile-user-data"
