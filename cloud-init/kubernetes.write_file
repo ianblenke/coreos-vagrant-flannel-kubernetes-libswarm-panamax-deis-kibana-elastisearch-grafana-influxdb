@@ -1,15 +1,25 @@
-  - path: /tmp/kubernetes-download@.service
+  - path: /tmp/kubernetes-create-fleet-units.sh
+    permissions: '0644'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -x
+      /usr/bin/fleetctl start /tmp/kubernetes-download.service
+      /usr/bin/fleetctl start /tmp/kubernetes-proxy.service
+      /usr/bin/fleetctl start /tmp/kubernetes-kubelet.service
+      /usr/bin/fleetctl start /tmp/kubernetes-master.service
+      /usr/bin/fleetctl start /tmp/kubernetes-controller.service
+  - path: /tmp/kubernetes-download.service
     permissions: '0644'
     owner: root
     content: |
       [Unit]
       After=network-online.target
-      Before=kubelet.service
-      Before=proxy.service
+      Before=kubernetes-kubelet.service
+      Before=kibernetes-proxy.service
       Description=Download Kubernetes Binaries
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Requires=network-online.target
-      BindsTo=kubernetes-download@%i.service
 
       [Service]
       ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/kubelet
@@ -25,7 +35,7 @@
 
       [X-Fleet]
       Global=true
-  - path: /tmp/kubernetes-proxy@.service
+  - path: /tmp/kubernetes-proxy.service
     permissions: '0644'
     owner: root
     content: |
@@ -37,7 +47,6 @@
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Wants=etcd.service
       Wants=kubernetes-download.service
-      BindTo=kubernetes-proxy@%i.service
 
       [Service]
       ExecStart=/opt/bin/proxy --etcd_servers=http://127.0.0.1:4001 --logtostderr=true
@@ -56,7 +65,7 @@
     content: |
       [Unit]
       After=etcd.service
-      After=download-kubernetes.service
+      After=kubernetes-download.service
       After=docker-flannel.service
       ConditionFileIsExecutable=/opt/bin/kubelet
       Description=Kubernetes Kubelet
@@ -127,3 +136,6 @@
 
       [Install]
       WantedBy=multi-user.target
+
+      [X-Fleet]
+      MachineOf=kubernetes-master.service

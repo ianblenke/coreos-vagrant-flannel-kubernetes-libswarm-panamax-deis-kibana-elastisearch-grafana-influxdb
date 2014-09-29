@@ -2,10 +2,11 @@
       command: start
       content: |
         [Unit]
-        After=docker.service
+        After=libswarm.service
+        ConditionFileIsExecutable=/tmp/panamax-create-fleet-units.sh
+        ConditionFileExists=/tmp/panamax@.service
 
         [Service]
-        ExecStart=/usr/bin/fleetctl start /tmp/panamax-api.service
-        ExecStart=/usr/bin/fleetctl start /tmp/panamax-ui.service
+        ExecStart=/tmp/panamax-create-fleet-units.sh
         RemainAfterExit=no
         Type=oneshot

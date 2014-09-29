@@ -39,6 +39,7 @@
         Description=Docker Service using flannel
         After=flannel.service
         ConditionFileNotEmpty=/run/flannel/subnet.env
+        Before=libswarm-build.service
 
         [Service]
         Environment="TMPDIR=/var/tmp/"

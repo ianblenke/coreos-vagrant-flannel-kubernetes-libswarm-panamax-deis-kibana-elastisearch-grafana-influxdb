@@ -1,3 +1,11 @@
+  - path: /tmp/panamax-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -x
+      /usr/bin/fleetctl start /tmp/panamax-api.service
+      /usr/bin/fleetctl start /tmp/panamax-ui.service
   - path: /tmp/panamax-api.service
     permissions: '0644'
     owner: root
@@ -32,4 +40,4 @@
       RestartSec=5
 
       [X-Fleet]
-      X-ConditionMachineOf=panamax-api.service
+      MachineOf=panamax-api.service
