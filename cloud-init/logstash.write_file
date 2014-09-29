@@ -23,8 +23,7 @@
       }
       output {
         stdout {
-          debug => true
-          debug_format => "json"
+          codec => "json"
         }
         elasticsearch {
           embedded => false
@@ -51,7 +50,7 @@
       TimeoutSec=180
       EnvironmentFile=/etc/environment
 
-      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 514:514 -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
+      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 514:514 --publish 514:514/udp -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
 
       ExecStop=/bin/bash -xc "/usr/bin/docker stop logstash-$(hostname)"
       ExecStop=/bin/bash -xc "/usr/bin/docker rm logstash-$(hostname)"
