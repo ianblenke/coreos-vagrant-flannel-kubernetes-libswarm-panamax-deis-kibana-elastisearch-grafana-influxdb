@@ -1,0 +1,12 @@
+    - name: logstash-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/tmp/logstash-create-fleet-units.sh
+        ConditionFileExists=/tmp/logstash@.service
+
+        [Service]
+        ExecStart=/tmp/logstash-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

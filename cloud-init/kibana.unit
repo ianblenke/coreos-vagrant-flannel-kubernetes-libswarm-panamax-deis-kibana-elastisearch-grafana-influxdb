@@ -1,0 +1,12 @@
+    - name: kibana-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/kibana-create-fleet-units.sh
+        ConditionFileExists=/tmp/kibana@.service
+
+        [Service]
+        ExecStart=/tmp/kibana-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

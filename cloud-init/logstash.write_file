@@ -1,0 +1,62 @@
+  - path: /tmp/logstash-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -ex
+      source /etc/environment
+      cp /tmp/logstash@.service /tmp/logstash@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/logstash@$(hostname).service
+      sed -i -e "s/^After=.*$/After=elasticsearch@$(hostname).service/" /tmp/logstash@$(hostname).service
+      mkdir -p /var/run/logstash
+      cat << EOF > /var/run/logstash/logstash.conf
+      input {
+        stdin {
+          codec => json
+          tags => [ "source:journalctl", "node:$(hostname)", "node_ipv4:${COREOS_PRIVATE_IPV4}" ]
+        }
+        syslog {
+          type => syslog
+          port => 514
+          tags => [ "source:syslog", "node:$(hostname)", "node_ipv4:${COREOS_PRIVATE_IPV4}" ]
+        }
+      }
+      output {
+        stdout {
+          debug => true
+          debug_format => "json"
+        }
+        elasticsearch {
+          embedded => false
+          host => "${COREOS_PRIVATE_IPV4}"
+          port => 9200
+          protocol => "http"
+          cluster => "logstash"
+          codec => "json"
+          node_name => "logstash-$(hostname)"
+        }
+      }
+      EOF
+      /usr/bin/docker pull pblittle/docker-logstash:latest
+      /usr/bin/fleetctl start /tmp/logstash@$(hostname).service
+  - path: /tmp/logstash@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Logstash service
+      After=docker-flannel.service
+
+      [Service]
+      TimeoutSec=180
+      EnvironmentFile=/etc/environment
+
+      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 514:514 -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
+
+      ExecStop=/bin/bash -xc "/usr/bin/docker stop logstash-$(hostname)"
+      ExecStop=/bin/bash -xc "/usr/bin/docker rm logstash-$(hostname)"
+      Restart=on-failure
+      TimeoutSec=300
+      RestartSec=10
+
+      [X-Fleet]

@@ -1,0 +1,33 @@
+  - path: /tmp/kibana-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -ex
+      cp /tmp/kibana@.service /tmp/kibana@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/kibana@$(hostname).service
+      sed -i -e "s/^After=.*$/After=elasticsearch@$(hostname).service/" /tmp/kibana@$(hostname).service
+      /usr/bin/docker pull arcus/kibana:latest
+      /usr/bin/fleetctl start /tmp/kibana@$(hostname).service
+  - path: /tmp/kibana@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Kibana service
+      After=docker-flannel.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+
+      # The URL used to get to kibana will be ${ES_SCHEME}://${ES_HOST}:${ES_PORT} - For external access, you will want to change this.
+      ExecStart=/bin/bash -xc "/usr/bin/docker run --name kibana-$(hostname) --hostname kibana-$(hostname) --publish 8090:80 -e ES_HOST=localhost -e ES_PORT=9200 -e ES_SCHEME=http arcus/kibana:latest"
+
+      ExecStop=/bin/bash -xc "/usr/bin/docker stop kibana-$(hostname)"
+      ExecStop=/bin/bash -xc "/usr/bin/docker rm kibana-$(hostname)"
+
+      Restart=on-failure
+      TimeoutSec=60
+      RestartSec=10
+
+      [X-Fleet]

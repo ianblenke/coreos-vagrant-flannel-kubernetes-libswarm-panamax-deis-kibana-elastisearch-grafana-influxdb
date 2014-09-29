@@ -1,0 +1,53 @@
+    - name: flannel-download.service
+      command: start
+      content: |
+        [Unit]
+        After=network-online.target
+        Wants=network-online.target
+        Description=Download prebuilt Flannel binary
+
+        [Service]
+        ExecStartPre=-/usr/bin/mkdir -p /opt/bin
+        ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/flannel/flanneld
+        ExecStartPost=/usr/bin/chmod +x /opt/bin/flanneld
+        RemainAfterExit=yes
+        Type=oneshot
+    - name: flannel.service
+      command: start
+      content: |
+        [Unit]
+        After=flannel-download.service
+        After=etcd.service
+        Wants=network-online.target
+        Description=Flannel is an etcd backed overlay network for containers
+        ConditionFileIsExecutable=/opt/bin/flanneld
+
+        [Service]
+        ExecStartPre=-/usr/bin/etcdctl mkdir /coreos.com/network
+        ExecStartPre=-/usr/bin/etcdctl mk /coreos.com/network/config '{"Network":"10.244.0.0/16", "Backend":{"Type": "alloc"}}'
+        ExecStart=/opt/bin/flanneld -etcd-endpoint http://127.0.0.1:4001
+
+        Restart=on-failure
+        TimeoutSec=60
+        RestartSec=10
+    - name: docker.service
+      command: start
+      content: |
+        [Unit]
+        After=flannel.service
+        Requires=flannel.service
+        Description=Docker Application Container Engine with Flannel enabled
+        Documentation=http://docs.docker.io
+        ConditionFileExists=/run/flannel/subnet.env
+
+        [Service]
+        EnvironmentFile=/run/flannel/subnet.env
+        ExecStartPre=/bin/mount --make-rprivate /
+        ExecStart=/usr/bin/docker -d --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU} -s=btrfs -H fd://
+        Restart=on-failure
+        TimeoutSec=10
+        RestartSec=5
+
+        [Install]
+        Alias=docker-flannel.service
+        WantedBy=multi-user.target

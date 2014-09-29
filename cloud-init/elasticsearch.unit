@@ -2,7 +2,10 @@
       command: start
       content: |
         [Unit]
-        After=docker.service
+        After=flannel.service
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/elasticsearch-create-fleet-units.sh
+        ConditionFileExists=/tmp/elasticsearch@.service
 
         [Service]
         ExecStart=/tmp/elasticsearch-create-fleet-units.sh
