@@ -27,7 +27,7 @@
         [Service]
         Type=oneshot
         ExecStart=/usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin /usr/bin/sh -c 'curl -sSL http://deis.io/deisctl/install.sh | sh'
-    - name: run-deisctl-install.service
+    - name: deisctl-create-fleet-units.service
       command: start
       content: |
         [Unit]
@@ -37,14 +37,6 @@
 
         [Service]
         EnvironmentFile=/etc/environment
-        ExecStart=/run/deis/bin/get_image /deis/builder
-        ExecStart=/run/deis/bin/get_image /deis/cache
-        ExecStart=/run/deis/bin/get_image /deis/controller
-        ExecStart=/run/deis/bin/get_image /deis/database
-        ExecStart=/run/deis/bin/get_image /deis/logger
-        ExecStart=/run/deis/bin/get_image /deis/registry
-        ExecStart=/run/deis/bin/get_image /deis/router
-        ExecStart=/opt/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 install platform
-        ExecStart=/opt/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 start platform
+        ExecStart=/tmp/deisctl-create-fleet-units.sh
         RemainAfterExit=no
         Type=oneshot

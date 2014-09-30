@@ -1,0 +1,65 @@
+  - path: /tmp/zookeeper-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -ex
+      cp -f /tmp/zookeeper@.service /tmp/zookeeper@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/zookeeper@$(hostname).service
+      /usr/bin/docker pull quay.io/signalfuse/zookeeper:latest
+      /usr/bin/fleetctl start /tmp/zookeeper@$(hostname).service
+  - path: /etc/profile.d/ip2dec.sh
+    permissions: '0755'
+    content: |
+      function ip2dec() {
+          local a b c d ip=$@
+          IFS=. read -r a b c d <<< "$ip"
+          printf '%d\n' "$((a * 256 ** 3 + b * 256 ** 2 + c * 256 + d))"
+      }
+  - path: /tmp/zookeeper@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Zookeeper service
+      After=docker-flannel.service
+      ConditionFileIsExecutable=/etc/profile.d/ip2dec.sh
+
+      [Service]
+      EnvironmentFile=/etc/environment
+
+      ExecStartPre=/usr/bin/mkdir -p /data/zookeeper
+
+      ExecStart=/bin/bash -xc "source /etc/profile.d/ip2dec.sh && \
+                               exec /usr/bin/docker run \
+                                      --name zookeeper-$(hostname) \
+                                      --hostname zookeeper-$(hostname) \
+                                      --publish 2181:2181 \
+                                      --publish 2888:2888 \
+                                      --publish 3888:3888 \
+                                      --publish 11099:10099 \
+                                      --volume /data/zookeeper:/data/zookeeper \
+                                      -e ZOOKEEPER_DATA_DIR=/data/zookeeper \
+                                      -e SERVICE_NAME=zookeeper \
+                                      -e CONTAINER_NAME=$(cat /etc/machine-id)  \
+                                      -e ZOOKEEPER_NODE_ID=$(fleetctl list-machines -full -no-legend -fields=machine,ip | grep $(cat /etc/machine-id) | while read line; do pair=( $line ) ; ip2dec ${pair[1]};  done)
+                                      -e ZOOKEEPER_$(cat /etc/machine-id)_HOST=${COREOS_PRIVATE_IPV4} \
+                                      -e ZOOKEEPER_SERVER_IDS=$(fleetctl list-machines -full -no-legend -fields=machine,ip | while read line; do pair=( $line ) ; echo ${pair[0]}:$(ip2dec ${pair[1]});  done | paste -s -d,) \
+                                      $(fleetctl list-machines -full -no-legend -fields=machine,ip | while read line; do \
+                                          pair=( $line ) ; \
+                                          echo -n '-e ZOOKEEPER_'${pair[0]}'_HOST='${pair[1]}' ';  done) \
+                                          echo -n '-e ZOOKEEPER_'${pair[0]}'_CLIENT_PORT=2181' '; \
+                                          echo -n '-e ZOOKEEPER_'${pair[0]}'_PEER_PORT=2888' '; \
+                                          echo -n '-e ZOOKEEPER_'${pair[0]}'_LEADER_ELECTION_PORT=3888' '; \
+                                          echo -n '-e ZOOKEEPER_'${pair[0]}'_JMX=11099' '; \
+                                        done) \
+                                      quay.io/signalfuse/zookeeper:latest"
+
+      ExecStop=/bin/bash -xc "/usr/bin/docker stop zookeeper-$(hostname)"
+      ExecStop=/bin/bash -xc "/usr/bin/docker rm zookeeper-$(hostname)"
+
+      Restart=on-failure
+      TimeoutSec=300
+      RestartSec=10
+
+      [X-Fleet]

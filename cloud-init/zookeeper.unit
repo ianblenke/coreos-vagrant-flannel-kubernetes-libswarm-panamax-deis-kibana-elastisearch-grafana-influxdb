@@ -1,0 +1,13 @@
+    - name: zookeeper-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=flannel.service
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/zookeeper-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/zookeeper@.service
+
+        [Service]
+        ExecStart=/tmp/zookeeper-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
