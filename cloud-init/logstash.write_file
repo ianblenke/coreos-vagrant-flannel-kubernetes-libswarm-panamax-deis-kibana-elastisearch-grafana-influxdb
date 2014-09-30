@@ -38,6 +38,11 @@
       EOF
       /usr/bin/docker pull pblittle/docker-logstash:latest
       /usr/bin/fleetctl start /tmp/logstash@$(hostname).service
+      /usr/bin/docker pull progrium/logspout:latest
+      cp /tmp/logspout@.service /tmp/logspout@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/logspout@$(hostname).service
+      sed -i -e "s/^After=.*$/After=elasticsearch@$(hostname).service/" /tmp/logspout@$(hostname).service
+      /usr/bin/fleetctl start /tmp/logspout@$(hostname).service
   - path: /tmp/logstash@.service
     permissions: '0644'
     owner: root
@@ -50,10 +55,31 @@
       TimeoutSec=180
       EnvironmentFile=/etc/environment
 
-      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 514:514 --publish 514:514/udp -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
+      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 10514:514 --publish 10514:514/udp -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
 
       ExecStop=/bin/bash -xc "/usr/bin/docker stop logstash-$(hostname)"
       ExecStop=/bin/bash -xc "/usr/bin/docker rm logstash-$(hostname)"
+      Restart=on-failure
+      TimeoutSec=300
+      RestartSec=10
+
+      [X-Fleet]
+  - path: /tmp/logspout@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=Logspout service
+      After=docker-flannel.service
+
+      [Service]
+      TimeoutSec=180
+      EnvironmentFile=/etc/environment
+
+      ExecStart=/usr/bin/docker run --name logspout-$(hostname) --hostname logspout-$(hostname) -v=/var/run/docker.sock:/tmp/docker.sock progrium/logspout syslog://${COREOS_PRIVATE_IPV4}:10514
+
+      ExecStop=/bin/bash -xc "/usr/bin/docker stop logspout-$(hostname)"
+      ExecStop=/bin/bash -xc "/usr/bin/docker rm logspout-$(hostname)"
       Restart=on-failure
       TimeoutSec=300
       RestartSec=10

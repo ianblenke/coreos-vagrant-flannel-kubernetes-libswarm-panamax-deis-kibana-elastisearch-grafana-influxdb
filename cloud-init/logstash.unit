@@ -4,7 +4,7 @@
         [Unit]
         After=docker.service
         ConditionFileIsExecutable=/tmp/logstash-create-fleet-units.sh
-        ConditionFileExists=/tmp/logstash@.service
+        ConditionFileNotEmpty=/tmp/logstash@.service
 
         [Service]
         ExecStart=/tmp/logstash-create-fleet-units.sh

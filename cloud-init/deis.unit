@@ -1,0 +1,42 @@
+    - name: fleet.socket
+      command: start
+      content: |
+        [Socket]
+        # Talk to the API over a Unix domain socket (default)
+        ListenStream=/var/run/fleet.sock
+        Service=fleet.service
+
+        [Install]
+        WantedBy=sockets.target
+    - name: stop-update-engine.service
+      command: start
+      content: |
+        [Unit]
+        Description=stop update-engine
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/systemctl stop update-engine.service
+        ExecStartPost=/usr/bin/systemctl mask update-engine.service
+    - name: install-deisctl.service
+      command: start
+      content: |
+        [Unit]
+        Description=Install deisctl utility
+
+        [Service]
+        Type=oneshot
+        ExecStart=/usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin /usr/bin/sh -c 'curl -sSL http://deis.io/deisctl/install.sh | sh'
+    - name: run-deisctl-install.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/opt/bin/deisctl
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/usr/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 install platform
+        ExecStart=/usr/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 start platform
+        RemainAfterExit=no
+        Type=oneshot

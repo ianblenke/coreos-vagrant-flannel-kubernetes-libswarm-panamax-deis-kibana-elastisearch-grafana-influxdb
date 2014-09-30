@@ -4,7 +4,9 @@
         [Unit]
         After=libswarm.service
         ConditionFileIsExecutable=/tmp/panamax-create-fleet-units.sh
-        ConditionFileExists=/tmp/panamax@.service
+        ConditionFileNotEmpty=/tmp/panamax-download.service
+        ConditionFileNotEmpty=/tmp/panamax-api.service
+        ConditionFileNotEmpty=/tmp/panamax-ui.service
 
         [Service]
         ExecStart=/tmp/panamax-create-fleet-units.sh

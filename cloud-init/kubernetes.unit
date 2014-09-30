@@ -4,11 +4,11 @@
         [Unit]
         After=libswarm.service
         ConditionFileIsExecutable=/tmp/kubernetes-create-fleet-units.sh
-        ConditionFileExists=/tmp/kubernetes-download.service
-        ConditionFileExists=/tmp/kubernetes-proxy.service
-        ConditionFileExists=/tmp/kubernetes-kubelet.service
-        ConditionFileExists=/tmp/kubernetes-master.service
-        ConditionFileExists=/tmp/kubernetes-controller.service
+        ConditionFileNotEmpty=/tmp/kubernetes-download.service
+        ConditionFileNotEmpty=/tmp/kubernetes-proxy.service
+        ConditionFileNotEmpty=/tmp/kubernetes-kubelet.service
+        ConditionFileNotEmpty=/tmp/kubernetes-master.service
+        ConditionFileNotEmpty=/tmp/kubernetes-controller.service
 
         [Service]
         ExecStart=/tmp/kubernetes-create-fleet-units.sh

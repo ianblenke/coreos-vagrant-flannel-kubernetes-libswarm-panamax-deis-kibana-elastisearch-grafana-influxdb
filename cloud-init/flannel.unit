@@ -38,7 +38,7 @@
         Requires=flannel.service
         Description=Docker Application Container Engine with Flannel enabled
         Documentation=http://docs.docker.io
-        ConditionFileExists=/run/flannel/subnet.env
+        ConditionFileNotEmpty=/run/flannel/subnet.env
         Before=libswarm-build.service
 
         [Service]
