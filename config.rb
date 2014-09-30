@@ -47,6 +47,6 @@ $enable_serial_logging=false
 
 # Setting for VirtualBox VMs
 $vb_gui = false
-$vb_memory = (ENV['COREOS_MEMORY'] && ENV['COREOS_MEMORY'].to_i >= 1024) ? ENV['COREOS_MEMORY'].to_i : 1024
+$vb_memory = (ENV['COREOS_MEMORY'] && ENV['COREOS_MEMORY'].to_i >= 2048) ? ENV['COREOS_MEMORY'].to_i : 2048
 $vb_cpus = (ENV['COREOS_CPUS'] && ENV['COREOS_CPUS'].to_i >= 1) ? ENV['COREOS_CPUS'].to_i : 1
 
