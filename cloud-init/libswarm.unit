@@ -8,6 +8,7 @@
         [Service]
         ExecStartPre=-/usr/bin/mkdir -p /opt/libswarm
         ExecStart=/usr/bin/docker run -v /opt/libswarm:/gopath --name libswarm-build google/golang /bin/bash -xc 'go get github.com/docker/libswarm; cd $GOPATH/src/github.com/docker/libswarm ; make deps ; apt-get -y install bzr; go install github.com/docker/libswarm/swarmd'
+        ExecStart=-/usr/bin/docker rm libswarm-build
         RemainAfterExit=yes
         Type=oneshot
     - name: libswarm.service

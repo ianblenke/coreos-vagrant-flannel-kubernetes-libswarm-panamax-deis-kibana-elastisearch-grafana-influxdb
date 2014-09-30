@@ -21,7 +21,7 @@
 
       ExecStartPre=/usr/bin/mkdir -p /data/elasticsearch
 
-      ExecStart=/bin/bash -xc "/usr/bin/docker run --name elasticsearch-$(hostname) --hostname elasticsearch-$(hostname) --publish 9200:9200 --publish 9300:9300 --volume /data/elasticsearch:/data dockerfile/elasticsearch:latest /elasticsearch/bin/elasticsearch --node.name=elasticsearch-${hostname} --cluster.name=logstash --network.publish_host=${COREOS_PRIVATE_IPV4} --discovery.zen.ping.multicast.enabled=false --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)" 
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name elasticsearch-$(hostname) --hostname elasticsearch-$(hostname) --publish 9200:9200 --publish 9300:9300 --volume /data/elasticsearch:/data dockerfile/elasticsearch:latest /elasticsearch/bin/elasticsearch --node.name=elasticsearch-${hostname} --cluster.name=logstash --network.publish_host=${COREOS_PRIVATE_IPV4} --discovery.zen.ping.multicast.enabled=false --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)" 
 
       ExecStop=/bin/bash -xc "/usr/bin/docker stop elasticsearch-$(hostname)"
       ExecStop=/bin/bash -xc "/usr/bin/docker rm elasticsearch-$(hostname)"

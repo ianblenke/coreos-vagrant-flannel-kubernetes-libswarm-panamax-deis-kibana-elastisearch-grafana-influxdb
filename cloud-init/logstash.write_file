@@ -76,8 +76,7 @@
       TimeoutSec=180
       EnvironmentFile=/etc/environment
 
-      ExecStart=/usr/bin/docker run --name logspout-$(hostname) --hostname logspout-$(hostname) -v=/var/run/docker.sock:/tmp/docker.sock progrium/logspout syslog://${COREOS_PRIVATE_IPV4}:10514
-
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name logspout-$(hostname) --hostname logspout-$(hostname) -v /var/run/docker.sock:/tmp/docker.sock progrium/logspout:latest syslog://${COREOS_PRIVATE_IPV4}:10514"
       ExecStop=/bin/bash -xc "/usr/bin/docker stop logspout-$(hostname)"
       ExecStop=/bin/bash -xc "/usr/bin/docker rm logspout-$(hostname)"
       Restart=on-failure

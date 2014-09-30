@@ -33,10 +33,18 @@
         [Unit]
         After=docker-flannel.service
         ConditionFileIsExecutable=/opt/bin/deisctl
+        ConditionFileIsExecutable=/run/deis/bin/get_image
 
         [Service]
         EnvironmentFile=/etc/environment
-        ExecStart=/usr/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 install platform
-        ExecStart=/usr/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 start platform
+        ExecStart=/run/deis/bin/get_image /deis/builder
+        ExecStart=/run/deis/bin/get_image /deis/cache
+        ExecStart=/run/deis/bin/get_image /deis/controller
+        ExecStart=/run/deis/bin/get_image /deis/database
+        ExecStart=/run/deis/bin/get_image /deis/logger
+        ExecStart=/run/deis/bin/get_image /deis/registry
+        ExecStart=/run/deis/bin/get_image /deis/router
+        ExecStart=/opt/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 install platform
+        ExecStart=/opt/bin/deisctl --endpoint=http://${COREOS_PRIVATE_IPV4}:4001 start platform
         RemainAfterExit=no
         Type=oneshot
