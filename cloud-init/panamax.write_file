@@ -16,11 +16,13 @@
       Before=panamax-ui.service
       Description=Pull Panamax Docker containers
       Requires=network-online.target
+      ConditionFileNotEmpty=/tmp/panamax-api.service
+      ConditionFileNotEmpty=/tmp/panamax-ui.service
 
       [Service]
-      ExecStart=/usr/bin/docker pull centurylink/panamax-ruby-base
-      ExecStart=/usr/bin/docker pull centurylink/panamax-ui
+      ExecStart=/usr/bin/docker pull centurylink/panamax-ruby-base:latest
       ExecStart=/usr/bin/fleetctl start /tmp/panamax-api.service
+      ExecStart=/usr/bin/docker pull centurylink/panamax-ui:latest
       ExecStart=/usr/bin/fleetctl start /tmp/panamax-ui.service
       RemainAfterExit=yes
       Type=oneshot
@@ -38,8 +40,7 @@
       EnvironmentFile=/etc/environment
       ExecStartPre=-/usr/bin/mkdir -p /run/panamax
       ExecStartPre=-/usr/bin/git clone https://github.com/CenturyLinkLabs/panamax-api /opt/panamax-api
-      ExecStartPre=/usr/bin/docker pull centurylink/panamax-ruby-base
-      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-api -v /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:4001 -e JOURNAL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:19531 -e DOCKER_HOST=tcp://${COREOS_PRIVATE_IPV4}:4243 centurylink/panamax-ruby-base /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; exec rails server'"
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-api -v /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:4001 -e JOURNAL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:19531 -e DOCKER_HOST=tcp://${COREOS_PRIVATE_IPV4}:4243 centurylink/panamax-ruby-base:latest /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; exec rails server'"
 
       ExecStop=/usr/bin/docker stop panamax-api
       ExecStop=/usr/bin/docker rm panamax-api
@@ -61,8 +62,7 @@
 
       [Service]
       EnvironmentFile=/etc/environment
-      ExecStartPre=/usr/bin/docker pull centurylink/panamax-ui
-      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-ui -e PMX_API_PORT_3000_TCP_ADDR=${COREOS_PRIVATE_IPV4} -e PMX_API_PORT_3000_TCP_PORT=8888 -d -p 3000:3000 centurylink/panamax-ui"
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-ui -e PMX_API_PORT_3000_TCP_ADDR=${COREOS_PRIVATE_IPV4} -e PMX_API_PORT_3000_TCP_PORT=8888 -p 3000:3000 centurylink/panamax-ui:latest"
       ExecStop=-/usr/bin/docker stop panamax-ui
       ExecStop=/usr/bin/docker rm panamax-ui
       Restart=on-failure

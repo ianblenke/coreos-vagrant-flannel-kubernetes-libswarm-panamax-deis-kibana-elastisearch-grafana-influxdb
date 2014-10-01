@@ -1,15 +1,33 @@
   - path: /tmp/kubernetes-create-fleet-units.sh
-    permissions: '0644'
+    permissions: '0755'
     owner: root
     content: |
       #!/bin/bash
       set -x
-      /usr/bin/fleetctl start /tmp/kubernetes-download.service
-      /usr/bin/fleetctl start /tmp/kubernetes-proxy.service
-      /usr/bin/fleetctl start /tmp/kubernetes-kubelet.service
+      cp -f /tmp/kubernetes-download@.service /tmp/kubernetes-download@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/kubernetes-download@$(hostname).service
+      cp -f /tmp/kubernetes-proxy@.service /tmp/kubernetes-proxy@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/kubernetes-proxy@$(hostname).service
+      cp -f /tmp/kubernetes-kubelet@.service /tmp/kubernetes-kubelet@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/kubernetes-kubelet@$(hostname).service
+      /usr/bin/fleetctl start /tmp/kubernetes-download@$(hostname).service
+  - path: /tmp/kubernetes-download.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -xe
+      [ -f /opt/bin/kubelet ]            || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/kubelet
+      [ -f /opt/bin/proxy ]              || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/proxy
+      [ -f /opt/bin/apiserver ]          || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/apiserver
+      [ -f /opt/bin/controller-manager ] || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/controller-manager
+      /usr/bin/chmod +x /opt/bin/kubelet /opt/bin/proxy /opt/bin/apiserver /opt/bin/controller-manager
+      set +e
+      /usr/bin/fleetctl start /tmp/kubernetes-proxy@$(hostname).service
+      /usr/bin/fleetctl start /tmp/kubernetes-kubelet@$(hostname).service
       /usr/bin/fleetctl start /tmp/kubernetes-master.service
       /usr/bin/fleetctl start /tmp/kubernetes-controller.service
-  - path: /tmp/kubernetes-download.service
+  - path: /tmp/kubernetes-download@.service
     permissions: '0644'
     owner: root
     content: |
@@ -17,36 +35,28 @@
       After=network-online.target
       Before=kubernetes-kubelet.service
       Before=kibernetes-proxy.service
+      Before=kubernetes-master.service
+      Before=kibernetes-controller.service
       Description=Download Kubernetes Binaries
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Requires=network-online.target
 
       [Service]
-      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/kubelet
-      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/proxy
-      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/apiserver
-      ExecStart=/usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/controller-manager
-      ExecStart=/usr/bin/chmod +x /opt/bin/kubelet
-      ExecStart=/usr/bin/chmod +x /opt/bin/proxy
-      ExecStart=/usr/bin/chmod +x /opt/bin/apiserver
-      ExecStart=/usr/bin/chmod +x /opt/bin/controller-manager
+      ExecStart=/tmp/kubernetes-download.sh
       RemainAfterExit=yes
       Type=oneshot
 
       [X-Fleet]
-      Global=true
-  - path: /tmp/kubernetes-proxy.service
+  - path: /tmp/kubernetes-proxy@.service
     permissions: '0644'
     owner: root
     content: |
       [Unit]
       After=etcd.service
-      After=kubernetes-download.service
       ConditionFileIsExecutable=/opt/bin/proxy
       Description=Kubernetes Proxy
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Wants=etcd.service
-      Wants=kubernetes-download.service
 
       [Service]
       ExecStart=/opt/bin/proxy --etcd_servers=http://127.0.0.1:4001 --logtostderr=true
@@ -54,24 +64,18 @@
       TimeoutSec=10
       RestartSec=10
 
-      [Install]
-      WantedBy=multi-user.target
-
       [X-Fleet]
-      Global=true
-  - path: /tmp/kubernetes-kubelet.service
+  - path: /tmp/kubernetes-kubelet@.service
     permissions: '0644'
     owner: root
     content: |
       [Unit]
       After=etcd.service
-      After=kubernetes-download.service
       After=docker-flannel.service
       ConditionFileIsExecutable=/opt/bin/kubelet
       Description=Kubernetes Kubelet
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Wants=etcd.service
-      Wants=kubernetes-download.service
 
       [Service]
       ExecStart=/bin/bash -xc "exec /opt/bin/kubelet \
@@ -84,23 +88,17 @@
       TimeoutSec=10
       RestartSec=10
 
-      [Install]
-      WantedBy=multi-user.target
-
       [X-Fleet]
-      Global=true
   - path: /tmp/kubernetes-master.service
     permissions: '0644'
     owner: root
     content: |
       [Unit]
       After=fleet.service
-      After=kubernetes-download.service
       ConditionFileIsExecutable=/opt/bin/apiserver
       Description=Kubernetes API Server
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Wants=etcd.service
-      Wants=kubernetes-download.service
 
       [Service]
       ExecStart=/bin/bash -xc "exec /opt/bin/apiserver \
@@ -111,21 +109,16 @@
       --logtostderr=true"
       Restart=always
       RestartSec=10
-
-      [Install]
-      WantedBy=multi-user.target
   - path: /tmp/kubernetes-controller.service
     permissions: '0644'
     owner: root
     content: |
       [Unit]
       After=etcd.service
-      After=kubernetes-download.service
       ConditionFileIsExecutable=/opt/bin/controller-manager
       Description=Kubernetes Controller Manager
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
       Wants=etcd.service
-      Wants=kubernetes-download.service
 
       [Service]
       ExecStart=/opt/bin/controller-manager \
@@ -133,9 +126,6 @@
       --logtostderr=true
       Restart=on-failure
       RestartSec=1
-
-      [Install]
-      WantedBy=multi-user.target
 
       [X-Fleet]
       MachineOf=kubernetes-master.service
