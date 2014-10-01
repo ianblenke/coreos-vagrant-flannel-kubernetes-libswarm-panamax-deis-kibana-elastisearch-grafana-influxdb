@@ -14,7 +14,7 @@ The start.sh script included runs through the steps in an automated fashion.
 
 Run `./start.sh`
 
-Note: This bootstraps through pulling down a golang docker container and compiling flannel, so it takes a bit to get going. Give it some time. Be patient. :)
+By default, this will deploy a fleet based kubernetes across 3 vagrant virtual machines.
 
 # Preparation:
 
@@ -28,9 +28,16 @@ This works both with OS/X Darwin and with Linux.
 
 The default kubeletes apiserver host is "localhost" and the default port is "8080". 
 You may need to port-forward 8080 to use kubecfg locally if not run on the master.
+
+To list which node the master/controller landed on, run this:
+
+    vagrant ssh core-01 -- fleetctl list-units
+
+Ideally, they landed on the first/default core node: core-01.
+
 To port forward using vagrant ssh, do this:
 
-    vagrant ssh core-01 -- -L 8080:localhost:8080
+    vagrant ssh core-01 -- fleetctl ssh -L 8080:localhost:8080
 
 This will let you run the kubecfg command locally without having to specify the `-h http://hostname:port` parameter.
 
@@ -67,17 +74,20 @@ If you have any further questions, join us on IRC via [freenode](https://freenod
 
 # Implementation Details:
 
-This script will generate a user-data script that is the concatenation of the user-data.sample and minion.yml files.
-The `vagrant up` will bootstrap the coreos nodes with flannel, and docker will be restarted to use it.
+This project has been entirely refactored to rely on a cloud-init bootstrap using a generated user-data config.
+
+All of the units and write_file segments concatenated by the start.sh script are in the cloud-init/ folder in this project.
+
+The sole purpose of the start.sh script is to generates a "user-data" config in this project's main directory and run vagrant up.
+
+While not strictly necessary for anything but kubernetes and libswarm/panamax at the moment, flannel (previously known as rudder) is included by default.
 
 The config.rb referenced by the Vagrantfile will populate the `ETCD_DISCOVERY_URL` in the user-data file.
+
 All nodes will start with the generated user-data file.
 
-Finally, the master node is provisioned to start the apiserver and controller-manager.
-
-The only services not automatically installed by a `vagrant up` are the master's apiserver, and controller-manager services.
-
-The `start.sh` script is really little more than a wrapper for preparing the master separately than the other minions.
+In earlier version of this project, start.sh would vagrant ssh in and install the master/controller systemd units for kubernetes. 
+To keep things clean, the "master" node for kubernetes is now chosen by fleet when the unit is scheduled. 
 
 The only hard-coded IP is the flannel subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
 All other IP information is discovered via vagrant ssh into the coreos nodes.
@@ -89,8 +99,6 @@ As this is all standard vagrant faire, it should be possible to use [mitchellh/v
 You may also be interested in [bketelsen/coreos-kubernetes-digitalocean](https://github.com/bketelsen/coreos-kubernetes-digitalocean), which was helpful in generating this project.
 
 Also, [metral/corekube](https://github.com/metral/corekube) is another recent effort by @mikemetral for OpenStack/Rackspace Heat template deployment of CoreOS/Kubernetes. See Mike's (blog post)[http://bit.ly/Zh4C93] for more information.
-
-Everything below this point in the README is from the original CoreOS Vagrant project upon which this fork is based.
 
 # Panamax and libswarm
 
@@ -112,6 +120,52 @@ If you wish to access the panamax UI, forward port 3000 using vagrant ssh:
 Or by changing your vagrant VM settings as in the Panamax [How-To: Port Forwarding on Virtualbox](https://github.com/CenturyLinkLabs/panamax-ui/wiki/How-To%3A-Port-Forwarding-on-VirtualBox).
 
 Then open your web browser to http://localhost:3000
+
+# Elasticsearch, Logstash, Kibana
+
+If you wish to check out a self-clustering Kibana deployment on CoreOS, try out:
+
+    COREOS_MEMORY=2048 ENABLE_KUBERNETES=false ENABLE_ELASTICSEARCH=true ENABLE_KIBANA=true ENABLE_LOGSTASH=true ./start.sh
+
+After this downloads and installs the fleet units, you should be able to ssh in with a port forward and check out the kibana webpage on any vagrant node:
+
+    vagrant ssh core-01 -- -L 8090:localhost:8090 -L 9200:localhost:9200
+
+Open your browser to:
+
+    http://localhost:8090
+
+The logstash is setup to forward ElasticSearch all nodes json systemd journalctl output as well as logspout output from the docker container logs.
+
+# Deis
+
+This deploys a deis cluster automagically using current deisctl 0.13-beta+ best practices.
+
+    COREOS_MEMORY=2048 ENABLE_KUBERNETES=false DEIS=true ./start.sh
+
+# Zookeeper
+
+This deploys a fleet of zookeeper containers that are configured to bootstrap their initial discovery from etcd fleet membership:
+
+    ENABLE_KUBERNETS=false ENABLE_ZOOKEEPER=true ./start.sh
+
+
+# Future...
+
+I'm actively trying to get a couchbase fleet going now, with cbfs after that. Having an HA memcache layer is at the top of my short list.
+
+Getting deis-store going with ceph osd and radosgw is a close second. Eventually, that will be rolled into deis 0.13, it's just a waiting game at this point.
+With deis-store for wal-e backending deis-database, clustered postgres is a reality.
+
+HA mysql with something multi-master, perhaps with galera, would be incredibly useful.
+
+HA redis is another personal goal. Sharding redis with twemproxy is nice as well. Having redis handle SLAVEOF automagically to the etcd leader on the loss of a master node would be even better.
+
+
+# Now back to your regularly scheduled program
+
+Everything below this point in the README is from the original CoreOS Vagrant project upon which this fork is based.
+
 
 # CoreOS Vagrant
 

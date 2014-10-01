@@ -24,7 +24,7 @@
 
         [Service]
         ExecStartPre=-/usr/bin/etcdctl mkdir /coreos.com/network
-        ExecStartPre=-/usr/bin/etcdctl mk /coreos.com/network/config '{"Network":"10.244.0.0/16", "Backend":{"Type": "alloc"}}'
+        ExecStartPre=-/usr/bin/etcdctl mk /coreos.com/network/config '{"Network":"172.30.0.0/16", "Backend":{"Type": "alloc"}}'
         ExecStart=/opt/bin/flanneld -etcd-endpoint http://127.0.0.1:4001
 
         Restart=on-failure
