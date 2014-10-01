@@ -161,6 +161,7 @@ HA mysql with something multi-master, perhaps with galera, would be incredibly u
 
 HA redis is another personal goal. Sharding redis with twemproxy is nice as well. Having redis handle SLAVEOF automagically to the etcd leader on the loss of a master node would be even better.
 
+After the persistence is sorted out (if it is even wise to attempt that yet on immutable infrastructure), influxdb and cadvisor for performance monitoring will happen as well.
 
 # Now back to your regularly scheduled program
 
