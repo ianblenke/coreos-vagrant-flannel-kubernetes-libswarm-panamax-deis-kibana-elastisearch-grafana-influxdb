@@ -55,10 +55,10 @@
       TimeoutSec=180
       EnvironmentFile=/etc/environment
 
-      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash-$(hostname) --hostname logstash-$(hostname) --publish 10514:514 --publish 10514:514/udp -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
+      ExecStart=/bin/bash -xc "/usr/bin/journalctl -f -o json | /usr/bin/docker run --name logstash --hostname logstash-$(hostname) --publish 10514:514 --publish 10514:514/udp -v /var/run/logstash/logstash.conf:/opt/logstash.conf pblittle/docker-logstash:latest"
 
-      ExecStop=/bin/bash -xc "/usr/bin/docker stop logstash-$(hostname)"
-      ExecStop=/bin/bash -xc "/usr/bin/docker rm logstash-$(hostname)"
+      ExecStop=/usr/bin/docker stop logstash
+      ExecStop=/usr/bin/docker rm logstash
       Restart=on-failure
       TimeoutSec=300
       RestartSec=10
@@ -76,9 +76,13 @@
       TimeoutSec=180
       EnvironmentFile=/etc/environment
 
-      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name logspout-$(hostname) --hostname logspout-$(hostname) -v /var/run/docker.sock:/tmp/docker.sock progrium/logspout:latest syslog://${COREOS_PRIVATE_IPV4}:10514"
-      ExecStop=/bin/bash -xc "/usr/bin/docker stop logspout-$(hostname)"
-      ExecStop=/bin/bash -xc "/usr/bin/docker rm logspout-$(hostname)"
+      ExecStart=/bin/bash -c "exec /usr/bin/docker run --name logspout \
+                                                       --hostname logspout-$(hostname) \
+                                                       --volume /var/run/docker.sock:/tmp/docker.sock \
+                                                       progrium/logspout:latest \
+                                                       syslog://${COREOS_PRIVATE_IPV4}:10514"
+      ExecStop=/usr/bin/docker stop logspout
+      ExecStop=/usr/bin/docker rm logspout
       Restart=on-failure
       TimeoutSec=300
       RestartSec=10

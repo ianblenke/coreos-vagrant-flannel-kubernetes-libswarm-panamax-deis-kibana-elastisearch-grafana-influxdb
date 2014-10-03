@@ -1,0 +1,43 @@
+  - path: /tmp/cadvisor-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull google/cadvisor
+      cp /tmp/cadvisor@.service /tmp/cadvisor@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/cadvisor@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /tmp/cadvisor@$(hostname).service
+      /usr/bin/fleetctl start /tmp/cadvisor@$(hostname).service
+  - path: /tmp/cadvisor@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=cAdvisor Service
+      After=influxdb@.service
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStart=/usr/bin/docker run --name cadvisor \
+                                    --volume=/var/run:/var/run:rw \
+                                    --volume=/sys:/sys:ro \
+                                    --volume=/var/lib/docker/:/var/lib/docker:ro \
+                                    --publish=4194:4194 \
+                                    google/cadvisor --logtostderr \
+                                                    --port=4194 \
+                                                    -storage_driver=influxdb \
+                                                    -log_dir=/ \
+                                                    -storage_driver_host=${COREOS_PRIVATE_IPV4}:8086 \
+                                                    -storage_driver_db=cadvisor \
+                                                    -storage_driver_user=root \
+                                                    -storage_driver_password=root \
+                                                    -storage_driver_secure=false
+
+      ExecStop=/usr/bin/docker stop -t 2 cadvisor
+      ExecStop=/usr/bin/docker rm cadvisor
+
+      [X-Fleet]

@@ -76,10 +76,18 @@
 
       ExecStartPre=/usr/bin/mkdir -p /data/zookeeper
 
-      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name zookeeper-$(hostname) --hostname zookeeper-$(hostname) --publish 2181:2181 --publish 2888:2888 --publish 3888:3888 --publish 11099:10099 --volume /data/zookeeper:/data/zookeeper $( cat /etc/zookeeper-environment | sed -e 's/^/-e /' ) quay.io/signalfuse/zookeeper:${ZOOKEEPER_RELEASE}"
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name zookeeper \
+                                                        --hostname zookeeper-$(hostname) \
+                                                        --publish 2181:2181 \
+                                                        --publish 2888:2888 \
+                                                        --publish 3888:3888 \
+                                                        --publish 11099:10099 \
+                                                        --volume /data/zookeeper:/data/zookeeper \
+                                                        $( cat /etc/zookeeper-environment | sed -e 's/^/-e /' ) \
+                                                        quay.io/signalfuse/zookeeper:${ZOOKEEPER_RELEASE}"
 
-      ExecStop=/bin/bash -xc "/usr/bin/docker stop zookeeper-$(hostname)"
-      ExecStop=/bin/bash -xc "/usr/bin/docker rm zookeeper-$(hostname)"
+      ExecStop=/usr/bin/docker stop zookeeper
+      ExecStop=/usr/bin/docker rm zookeeper
 
       Restart=on-failure
       TimeoutSec=300

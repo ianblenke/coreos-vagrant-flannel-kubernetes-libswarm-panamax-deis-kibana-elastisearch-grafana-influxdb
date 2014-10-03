@@ -1,0 +1,12 @@
+    - name: cadvisor-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/cadvisor-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/cadvisor@.service
+
+        [Service]
+        ExecStart=/tmp/cadvisor-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

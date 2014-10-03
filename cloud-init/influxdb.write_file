@@ -1,0 +1,43 @@
+  - path: /tmp/influxdb-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull tutum/influxdb
+      cp /tmp/influxdb@.service /tmp/influxdb@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/influxdb@$(hostname).service
+      /usr/bin/fleetctl start /tmp/influxdb@$(hostname).service
+  - path: /tmp/influxdb@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      # Based on https://github.com/GoogleCloudPlatform/heapster/tree/master/influx-grafana/influxdb
+      [Unit]
+      Description=InfluxDB Service
+      After=docker-flannel.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStartPre=-/usr/bin/mkdir -p /data/influxdb
+      ExecStart=/bin/bash -c "exec /usr/bin/docker run --name influxdb \
+                          --publish 8083:8083 \
+                          --publish 8086:8086 \
+                          --publish 8090:8090 \
+                          --publish 8099:8099 \
+                          --volume /data/influxdb:/opt/influxdb/shared/data \
+                          -e SSL_SUPPORT=true \
+                          -e DEFAULT_DB=cadvisor \
+                          -e REPLI_FACTOR=3 \
+                          -e INFLUXDB_INIT_PWD=root \
+                          -e SEEDS=$(fleetctl list-machines -full -no-legend -fields=machine,ip | grep -v $(cat /etc/machine-id) | awk '{print $2}' | sed -e 's/^/\"/' -e 's/$/:8090\"/' | paste -s -d, ) \
+                          -e FORCE_HOSTNAME=influxdb-$(hostname) \
+                          tutum/influxdb"
+      ExecStop-=/usr/bin/docker stop -t 2 influxdb
+      ExecStop=/usr/bin/docker rm influxdb
+
+      [X-Fleet]
