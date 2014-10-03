@@ -137,11 +137,25 @@ Open your browser to:
 
 The logstash is setup to forward ElasticSearch all nodes json systemd journalctl output as well as logspout output from the docker container logs.
 
+Now you have distributed searchable logging.
+
 # Deis
 
 This deploys a deis cluster automagically using current deisctl 0.13-beta+ best practices.
 
     COREOS_MEMORY=2048 ENABLE_KUBERNETES=false DEIS=true ./start.sh
+
+Now you have the beginnings of a PaaS. Next step, visit [deis.io](http://deis.io)
+
+# Heapster / Grafana / cadvisor / influxdb
+
+This deploys a kubernetes aware cadvisor, thanks to [heapster](https://github.com/GoogleCloudPlatform/heapster), integrated with grafana and a clustered tutum influxdb backend with 3 data replicas.
+
+    COREOS_MEMORY=2048 ENABLE_HEAPSTER=true ./start.sh
+
+Now you have distributed searchable system metrics.
+
+This also installs elasticsearch, as that is a dependency for grafana.
 
 # Zookeeper
 
@@ -149,6 +163,7 @@ This deploys a fleet of zookeeper containers that are configured to bootstrap th
 
     ENABLE_KUBERNETS=false ENABLE_ZOOKEEPER=true ./start.sh
 
+Nothing else needs this. Yet.
 
 # Future...
 
