@@ -1,0 +1,13 @@
+    - name: grafana-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/grafana-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/grafana@.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/tmp/grafana-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

@@ -42,7 +42,7 @@
       ExecStartPre=-/usr/bin/git clone https://github.com/CenturyLinkLabs/panamax-api /opt/panamax-api
       ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name panamax-api -v /opt/panamax-api:/var/app/panamax-api -p 8888:3000 -e FLEETCTL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:4001 -e JOURNAL_ENDPOINT=http://${COREOS_PRIVATE_IPV4}:19531 -e DOCKER_HOST=tcp://${COREOS_PRIVATE_IPV4}:4243 centurylink/panamax-ruby-base:latest /bin/bash -xc 'cd /var/app/panamax-api; bundle ; rake db:create db:migrate db:seed; rake panamax:templates:load ; exec rails server'"
 
-      ExecStop=/usr/bin/docker stop panamax-api
+      ExecStop-=/usr/bin/docker stop panamax-api
       ExecStop=/usr/bin/docker rm panamax-api
 
       Restart=on-failure

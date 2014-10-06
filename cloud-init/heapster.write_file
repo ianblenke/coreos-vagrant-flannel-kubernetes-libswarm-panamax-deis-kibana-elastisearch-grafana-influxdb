@@ -1,0 +1,62 @@
+  - path: /tmp/heapster-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      mkdir -p /data/heapster
+      /usr/bin/docker pull vish/heapster-buddy:latest
+      cp /tmp/heapster-buddy@.service /tmp/heapster-buddy@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/heapster-buddy@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /tmp/heapster-buddy@$(hostname).service
+      sed -i -e "s/^After=cadvisor@.*$/After=cadvisor@$(hostname).service/" /tmp/heapster-buddy@$(hostname).service
+      /usr/bin/fleetctl start /tmp/heapster-buddy@$(hostname).service
+
+      /usr/bin/docker pull vish/heapster:latest
+      cp /tmp/heapster@.service /tmp/heapster@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/heapster@$(hostname).service
+  - path: /tmp/heapster-buddy@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      # Based on https://github.com/GoogleCloudPlatform/heapster/tree/master/clusters/coreos
+      [Unit]
+      Description=Heapster Buddy Service
+      After=cadvisor@.service
+      After=influxdb@.service
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStart=/usr/bin/docker run --name heapster-buddy-coreos \
+                                    --volume /data/heapster:/var/run/heapster \
+                                    vish/heapster-buddy-coreos
+
+      ExecStop=/usr/bin/docker stop -t 2 heapster-buddy-coreos
+      ExecStop=/usr/bin/docker rm heapster-buddy-coreos
+
+      [X-Fleet]
+  - path: /tmp/heapster@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      # Based on https://github.com/GoogleCloudPlatform/heapster/tree/master/clusters/coreos
+      [Unit]
+      Description=Heapster Service
+      After=cadvisor@.service
+      After=influxdb@.service
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStart=/usr/bin/docker run --name heapster \
+                                    -e INFLUXDB_HOST=${COREOS_PRIVATE_IPV4}:8086 \
+                                    --volume /data/heapster:/var/run/heapster \
+                                    vish/heapster
+
+      ExecStop=/usr/bin/docker stop -t 2 heapster
+      ExecStop=/usr/bin/docker rm heapster
+
+      [X-Fleet]

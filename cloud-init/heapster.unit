@@ -1,0 +1,12 @@
+    - name: heapster-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/heapster-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/heapster@.service
+
+        [Service]
+        ExecStart=/tmp/heapster-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

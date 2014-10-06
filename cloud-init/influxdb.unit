@@ -1,0 +1,12 @@
+    - name: influxdb-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/influxdb-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/influxdb@.service
+
+        [Service]
+        ExecStart=/tmp/influxdb-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
