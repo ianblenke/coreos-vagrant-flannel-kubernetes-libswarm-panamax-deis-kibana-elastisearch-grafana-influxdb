@@ -136,14 +136,15 @@
     owner: root
     content: |
       [Unit]
-      After=etcd.service
+      After=kubernetes-master.service
       Description=Kubernetes Scheduler Plugin
       Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Requires=kubernetes-master.service
 
       [Service]
       Type=simple
       EnvironmentFile=-/etc/sysconfig/scheduler
-      ExecStart=/usr/local/bin/scheduler "-master=127.0.0.1:8080"
+      ExecStart=/opt/bin/scheduler "-master=127.0.0.1:8080"
 
       [Install]
       WantedBy=multi-user.target
