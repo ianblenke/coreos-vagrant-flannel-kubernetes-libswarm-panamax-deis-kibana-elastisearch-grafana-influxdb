@@ -21,12 +21,14 @@
       [ -f /opt/bin/proxy ]              || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/proxy
       [ -f /opt/bin/apiserver ]          || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/apiserver
       [ -f /opt/bin/controller-manager ] || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/controller-manager
-      /usr/bin/chmod +x /opt/bin/kubelet /opt/bin/proxy /opt/bin/apiserver /opt/bin/controller-manager
+      [ -f /opt/bin/scheduler ]          || /usr/bin/wget -N -P /opt/bin http://storage.googleapis.com/kubernetes/scheduler
+      /usr/bin/chmod +x /opt/bin/kubelet /opt/bin/proxy /opt/bin/apiserver /opt/bin/controller-manager /opt/bin/scheduler
       set +e
       /usr/bin/fleetctl start /tmp/kubernetes-proxy@$(hostname).service
       /usr/bin/fleetctl start /tmp/kubernetes-kubelet@$(hostname).service
       /usr/bin/fleetctl start /tmp/kubernetes-master.service
       /usr/bin/fleetctl start /tmp/kubernetes-controller.service
+      /usr/bin/fleetctl start /tmp/kubernetes-scheduler.service
   - path: /tmp/kubernetes-download@.service
     permissions: '0644'
     owner: root
@@ -126,6 +128,26 @@
       --logtostderr=true
       Restart=on-failure
       RestartSec=1
+
+      [X-Fleet]
+      MachineOf=kubernetes-master.service
+  - path: /tmp/kubernetes-scheduler.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      After=kubernetes-master.service
+      Description=Kubernetes Scheduler Plugin
+      Documentation=https://github.com/GoogleCloudPlatform/kubernetes
+      Requires=kubernetes-master.service
+
+      [Service]
+      Type=simple
+      EnvironmentFile=-/etc/sysconfig/scheduler
+      ExecStart=/opt/bin/scheduler "-master=127.0.0.1:8080"
+
+      [Install]
+      WantedBy=multi-user.target
 
       [X-Fleet]
       MachineOf=kubernetes-master.service
