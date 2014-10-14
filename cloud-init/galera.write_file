@@ -1,0 +1,57 @@
+  - path: /tmp/galera-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull paulczar/percona-galera:latest
+
+      cp /tmp/galera-data@.service /tmp/galera-data@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/galera-data@$(hostname).service
+      /usr/bin/fleetctl start /tmp/galera-data@$(hostname).service
+
+      cp /tmp/galera@.service /tmp/galera@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/galera@$(hostname).service
+      sed -i -e "s/^After=galera-data@.*$/After=galera-data@$(hostname).service/" /tmp/galera@$(hostname).service
+      /usr/bin/fleetctl start /tmp/galera@$(hostname).service
+  - name: /tmp/galera-data@.service
+    permissions: '0755'
+    owner: root
+    content: |
+      [Unit]
+      Description=galera data
+      After=docker-flannel.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStartPre=/usr/bin/docker pull paulczar/percona-galera:latest
+      ExecStart=/bin/sh -c "/usr/bin/docker inspect galera-data >/dev/null 2>&1 || docker run --name galera-data -v /var/lib/mysql paulczar/percona-galera:latest true"
+  - name: /tmp/galera@.service
+    permissions: '0755'
+    owner: root
+    content: |
+      [Unit]
+      Description=galera
+      After=galera-data@.service
+
+      [Service]
+      Restart=always
+      EnvironmentFile=/etc/environment
+      TimeoutStartSec=20m
+      ExecStartPre=/usr/bin/docker pull paulczar/percona-galera:latest
+      ExecStart=/bin/sh -c "exec /usr/bin/docker run --name galera --rm \
+                            --volumes-from galera-data \
+                            -p 3306:3306 -p 4444:4444 -p 4567:4567 -p 4568:4568 \
+                            -e PUBLISH=3306 \
+                            -e HOST=${COREOS_PRIVATE_IPV4} \
+                            -e ETCD_HOST=${COREOS_PRIVATE_IPV4} \
+                            -e CLUSTER=galera \
+                            -e MYSQL_USER=admin \
+                            -e MYSQL_PASS=admin \
+                            -e REP_USER=replicator \
+                            -e REP_PASS=replicator \
+                            paulczar/percona-galera:latest"
+      ExecStop=/usr/bin/docker stop galera

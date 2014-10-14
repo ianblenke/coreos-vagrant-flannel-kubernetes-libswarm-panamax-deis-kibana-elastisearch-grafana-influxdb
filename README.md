@@ -147,6 +147,9 @@ This deploys a deis cluster automagically using current deisctl 0.13-beta+ best 
 
 Now you have the beginnings of a PaaS. Next step, visit [deis.io](http://deis.io)
 
+Thanks to deis 0.13 and later, deis-store also presents a deis-database postgres unit that now wal-e archives to a deis-store s3 backend based on ceph + radosgw.
+This effectively provides an HA Postgres DBaaS layer.
+
 # Heapster / Grafana / cadvisor / influxdb
 
 This deploys a kubernetes aware cadvisor, thanks to [heapster](https://github.com/GoogleCloudPlatform/heapster), integrated with grafana and a clustered tutum influxdb backend with 3 data replicas.
@@ -156,6 +159,18 @@ This deploys a kubernetes aware cadvisor, thanks to [heapster](https://github.co
 Now you have distributed searchable system metrics.
 
 This also installs elasticsearch, as that is a dependency for grafana.
+
+# Galera (MySQL cluster)
+
+This deploys a Galera MySQL cluster:
+
+    ENABLE_GALERA=true ./start.sh
+
+Now you have the beginnings of a MySQL DBaaS layer.
+
+Presently, a galera-data container is created for the persistent volume rather than simply a referenced coreos host shared volume.
+This may change.
+The decision whether to globally adopt coreos host shared volume model or docker data containers for persistence volumes hasn't been made yet.
 
 # Zookeeper
 
@@ -171,8 +186,6 @@ I'm actively trying to get a couchbase fleet going now, with cbfs after that. Ha
 
 Getting deis-store going with ceph osd and radosgw is a close second. Eventually, that will be rolled into deis 0.13, it's just a waiting game at this point.
 With deis-store for wal-e backending deis-database, clustered postgres is a reality.
-
-HA mysql with something multi-master, perhaps with galera, would be incredibly useful.
 
 HA redis is another personal goal. Sharding redis with twemproxy is nice as well. Having redis handle SLAVEOF automagically to the etcd leader on the loss of a master node would be even better.
 

@@ -1,0 +1,13 @@
+    - name: galera-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker-flannel.service
+        ConditionFileIsExecutable=/tmp/galera-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/galera@.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/tmp/galera-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot

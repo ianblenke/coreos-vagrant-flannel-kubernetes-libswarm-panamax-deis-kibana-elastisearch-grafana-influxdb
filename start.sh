@@ -7,11 +7,11 @@ NUM_INSTANCES=${NUM_INSTANCES:-3}
 
 ENABLE_KUBERNETES=${ENABLE_KUBERNETES:-true}
 
-ENABLE_LIBSWARM=${ENABLE_LIBSWARM:-false}
 ENABLE_PANAMAX=${ENABLE_PANAMAX:-false}
+ENABLE_LIBSWARM=${ENABLE_LIBSWARM:-false}
 
-ENABLE_ELASTICSEARCH=${ENABLE_ELASTICSEARCH:-false}
 ENABLE_KIBANA=${ENABLE_KIBANA:-false}
+ENABLE_ELASTICSEARCH=${ENABLE_ELASTICSEARCH:-false}
 ENABLE_LOGSTASH=${ENABLE_LOGSTASH:-false}
 
 ENABLE_DEIS=${ENABLE_DEIS:-false}
@@ -23,6 +23,12 @@ ENABLE_CADVISOR=${ENABLE_CADVISOR:-false}
 ENABLE_GRAFANA=${ENABLE_GRAFANA:-false}
 ENABLE_HEAPSTER=${ENABLE_HEAPSTER:-false}
 
+ENABLE_GALERA=${ENABLE_GALERA:-false}
+
+# Dependent services
+[ "${ENABLE_PANAMAX}" = "true" ] && ENABLE_LIBSWARM=true
+[ "${ENABLE_KIBANA}" = "true" ] && ENABLE_ELASTICSEARCH=true
+[ "${ENABLE_KIBANA}" = "true" ] && ENABLE_LOGSTASH=true
 [ "${ENABLE_HEAPSTER}" = "true" ] && ENABLE_GRAFANA=true
 [ "${ENABLE_GRAFANA}" = "true" ] && ENABLE_CADVISOR=true
 [ "${ENABLE_GRAFANA}" = "true" ] && ENABLE_ELASTICSEARCH=true
@@ -52,6 +58,7 @@ which vagrant || (
   [ "$ENABLE_CADVISOR" = "true" ] && cat cloud-init/cadvisor.unit
   [ "$ENABLE_GRAFANA" = "true" ] && cat cloud-init/grafana.unit
   [ "$ENABLE_HEAPSTER" = "true" ] && cat cloud-init/heapster.unit
+  [ "$ENABLE_GALERA" = "true" ] && cat cloud-init/galera.unit
   echo "write_files:"
   [ "$ENABLE_KUBERNETES" = "true" ] && cat cloud-init/kubernetes.write_file
   [ "$ENABLE_ELASTICSEARCH" = "true" ] && cat cloud-init/elasticsearch.write_file
@@ -64,6 +71,7 @@ which vagrant || (
   [ "$ENABLE_CADVISOR" = "true" ] && cat cloud-init/cadvisor.write_file
   [ "$ENABLE_GRAFANA" = "true" ] && cat cloud-init/grafana.write_file
   [ "$ENABLE_HEAPSTER" = "true" ] && cat cloud-init/heapster.write_file
+  [ "$ENABLE_GALERA" = "true" ] && cat cloud-init/galera.write_file
   true
 ) > user-data
 
