@@ -1,6 +1,6 @@
-# Kubernetes on CoreOS
+# CoreOS Vagrant Kitchen Sink
 
-This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [flannel](https://github.com/coreos/flannel) and Kelsey Hightower's [kubernetes-coreos](https://github.com/kelseyhightower/kubernetes-coreos)
+This is a fork of [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) with [flannel](https://github.com/coreos/flannel), Kelsey Hightower's [kubernetes-coreos](https://github.com/kelseyhightower/kubernetes-coreos), and a growing number of other useful fleet units.
 
 Technically, flannel isn't neccessary to get coreos working with kubernetes and vagrant. The point of this project is to gain some experience with flannel and kubernetes for eventual deployment in the cloud.
 
