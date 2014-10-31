@@ -1,3 +1,4 @@
+    # Also see: https://github.com/kelseyhightower/intro-to-kubernetes-workshop/blob/master/cloud-configs/knode.yaml
     - name: flannel-download.service
       command: start
       content: |
@@ -23,6 +24,7 @@
         ConditionFileIsExecutable=/opt/bin/flanneld
 
         [Service]
+        Type=notify
         ExecStartPre=-/usr/bin/etcdctl mkdir /coreos.com/network
         ExecStartPre=-/usr/bin/etcdctl mk /coreos.com/network/config '{"Network":"172.30.0.0/16", "Backend":{"Type": "alloc"}}'
         ExecStart=/opt/bin/flanneld -etcd-endpoint http://127.0.0.1:4001
