@@ -1,0 +1,45 @@
+  - path: /srv/nrsysmond-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      cp /srv/nrsysmond@.service /srv/nrsysmond@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/nrsysmond@$(hostname).service
+      /usr/bin/fleetctl start /srv/nrsysmond@$(hostname).service
+  - path: /srv/update_nrsysmond.sh
+    permissions: 0744
+    owner: root
+    content: |
+      #!/bin/bash +x
+      VERSION=1.5.1.93
+      ARCH=x64
+      TARBALL=https://download.newrelic.com/server_monitor/release/newrelic-sysmond-${VERSION}-linux.tar.gz
+      curl $TARBALL | tar xvzf - -C /tmp
+      cp /tmp/newrelic-sysmond-${VERSION}-linux/daemon/nrsysmond.${ARCH} /srv/nrsysmond
+      rm -rf /tmp/$TARBALL /tmp/newrelic-sysmond-${VERSION}-linux
+  - path: /srv/nrsysmond@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=nrsysmond
+      After=etcd.service
+
+      [Service]
+      Restart=always
+      ExecStartPre=/srv/update_nrsysmond.sh
+      ExecStart=/srv/nrsysmond -f -n %H -c /etc/nrsysmond.cfg
+      ExecStop=/usr/bin/kill $(cat /var/run/nrsysmond.pid)
+
+      [X-Fleet]
+  - path: /etc/nrsysmond.cfg
+    permissions: 0644
+    owner: root
+    content: |
+        logfile = /var/log/nrsysmond.log
+        loglevel = warning
+        pidfile = /var/run/nrsysmond.pid
+        license_key = <YOUR_LICENSE_KEY_HERE>

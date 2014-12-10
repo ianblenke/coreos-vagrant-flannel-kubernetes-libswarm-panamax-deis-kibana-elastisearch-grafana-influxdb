@@ -1,0 +1,13 @@
+    - name: nrsysmond-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/nrsysmond-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/nrsysmond@.service
+        ConditionFileNotEmpty=/etc/nrsysmond.cfg
+
+        [Service]
+        ExecStart=/srv/nrsysmond-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
