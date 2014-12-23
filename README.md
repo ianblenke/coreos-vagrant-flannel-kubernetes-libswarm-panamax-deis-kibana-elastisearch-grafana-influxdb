@@ -203,106 +203,141 @@ After setup is complete you will have a single CoreOS virtual machine running on
 
 ## Streamlined setup
 
-1) Install dependencies
+* #### Install dependencies
 
-* [VirtualBox][virtualbox] 4.3.10 or greater.
-* [Vagrant][vagrant] 1.6 or greater.
+	-  [VirtualBox][virtualbox] 4.3.10 or greater.
+	-  [Vagrant][vagrant] 1.6 or greater.
 
-2) Clone this project and get it running!
+* #### Clone this project and get it running!
 
-```
-git clone https://github.com/coreos/coreos-vagrant/
-cd coreos-vagrant
-```
+	```
+	git clone https://github.com/coreos/coreos-vagrant/
+	cd coreos-vagrant
+	```
 
-3) Startup and SSH
+* ####Startup and SSH
 
-There are two "providers" for Vagrant with slightly different instructions.
-Follow one of the following two options:
+	There are three _providers_ for Vagrant with slightly different instructions.
+	Follow one of the following three options:
 
-**VirtualBox Provider**
+	 - **VirtualBox Provider**
 
-The VirtualBox provider is the default Vagrant provider. Use this if you are unsure.
+	   The VirtualBox provider is the default Vagrant provider.
+	   Use this if you are unsure.
+  		 
+  	   ```
+	    vagrant up
+		vagrant ssh
+	   ```
 
-```
-vagrant up
-vagrant ssh
-```
+ 	- **Parallels Provider**
 
-**VMware Provider**
+	  The Parallels provider is a free addon from Parallels for those running
+	  [Parallels Desktop](http://www.parallels.com/eu/products/desktop/) instead
+	  of [VirtualBox][virtualbox].
+	  Since the Parallels provider is distributed as a Vagrant plugin, installing
+	  it is as easy as
 
-The VMware provider is a commercial addon from Hashicorp that offers better stability and speed.
-If you use this provider follow these instructions.
+	  ```
+	   vagrant plugin install vagrant-parallels
+	  ```
+	  after that run
 
-```
-vagrant up --provider vmware_fusion
-vagrant ssh
-```
+	  ```
+	   vagrant up --provider parallels
+	   vagrant ssh
+	  ```
 
-``vagrant up`` triggers vagrant to download the CoreOS image (if necessary) and (re)launch the instance
+ 	- **VMware Provider**
 
-``vagrant ssh`` connects you to the virtual machine.
-Configuration is stored in the directory so you can always return to this machine by executing vagrant ssh from the directory where the Vagrantfile was located.
+	  The [VMware provider](https://www.vagrantup.com/vmware) is a commercial addon
+	  from Hashicorp that is needed if you are running
+	  [VMware](https://docs.vagrantup.com/v2/vmware/index.html)
+	  instead of [VirtualBox][virtualbox].
+	  using it is as easy as 
 
-3) Get started [using CoreOS][using-coreos]
+      ```
+	   vagrant up --provider vmware_fusion
+	   vagrant ssh
+	  ```
 
-[virtualbox]: https://www.virtualbox.org/
-[vagrant]: https://www.vagrantup.com/downloads.html
-[using-coreos]: http://coreos.com/docs/using-coreos/
 
-#### Shared Folder Setup
 
-There is optional shared folder setup.
-You can try it out by adding a section to your Vagrantfile like this.
+	``vagrant up`` triggers vagrant to download the CoreOS image (if necessary)
+	and (re)launch the instance
 
-```
-config.vm.network "private_network", ip: "172.17.8.150"
-config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
-```
+    ``vagrant ssh`` connects you to the virtual machine.
+    
+    Configuration is stored in the directory so you can always return to this machine
+    by executing vagrant ssh from the directory where the Vagrantfile was located.
 
-After a 'vagrant reload' you will be prompted for your local machine password.
+* ####Get started [using CoreOS](http://coreos.com/docs/using-coreos/)
+  - ##### Shared Folder Setup
 
-#### Provisioning with user-data
+    There is optional shared folder setup.
+    You can try it out by adding a section to your Vagrantfile like this.
 
-The Vagrantfile will provision your CoreOS VM(s) with [coreos-cloudinit][coreos-cloudinit] if a `user-data` file is found in the project directory.
-coreos-cloudinit simplifies the provisioning process through the use of a script or cloud-config document.
+    ```
+      config.vm.network "private_network", ip: "172.17.8.150"
+      config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs =>   true,  :mount_options   => ['nolock,vers=3,udp']
+    ```
 
-To get started, copy `user-data.sample` to `user-data` and make any necessary modifications.
-Check out the [coreos-cloudinit documentation][coreos-cloudinit] to learn about the available features.
+	After a ```vagrant reload`` you will be prompted for your local machine password.
 
-[coreos-cloudinit]: https://github.com/coreos/coreos-cloudinit
+  - ##### Provisioning with user-data
 
-#### Configuration
+	The Vagrantfile will provision your CoreOS VM(s) with
+	[coreos-cloudinit][coreos-cloudinit] if a `user-data` file is found in the
+	project directory. coreos-cloudinit simplifies the provisioning process through
+	the use of a script or cloud-config document.
+    To get started, copy `user-data.sample` to `user-data` and make any necessary
+    modifications. Check out the 
+    [coreos-cloudinit documentation][coreos-cloudinit] to learn about the available
+    features.
 
-The Vagrantfile will parse a `config.rb` file containing a set of options used to configure your CoreOS cluster.
-See `config.rb.sample` for more information.
+    [coreos-cloudinit]: https://github.com/coreos/coreos-cloudinit
 
-## Cluster Setup
+   - ##### Configuration
 
-Launching a CoreOS cluster on Vagrant is as simple as configuring `$num_instances` in a `config.rb` file to 3 (or more!) and running `vagrant up`.
-Make sure you provide a fresh discovery URL in your `user-data` if you wish to bootstrap etcd in your cluster.
+     The Vagrantfile will parse a `config.rb` file containing a set of options used
+     to configure your CoreOS cluster. See `config.rb.sample` for more information.
 
-## New Box Versions
+ - ### Cluster Setup
 
-CoreOS is a rolling release distribution and versions that are out of date will automatically update.
-If you want to start from the most up to date version you will need to make sure that you have the latest box file of CoreOS.
-Simply remove the old box file and vagrant will download the latest one the next time you `vagrant up`.
+   Launching a CoreOS cluster on Vagrant is as simple as configuring `$num_instances`
+   in a `config.rb` file to 3 (or more!) and running `vagrant up`.
+   Make sure you provide a fresh discovery URL in your `user-data` if you wish to 
+   bootstrap etcd in your cluster.
 
-```
-vagrant box remove coreos --provider vmware_fusion
-vagrant box remove coreos --provider virtualbox
-```
+ - ### New Box Versions
 
-## Docker Forwarding
+   CoreOS is a rolling release distribution and versions that are out of date will
+   automatically update. If you want to start from the most up to date version you
+   will need to make sure that you have the latest box file of CoreOS. Simply remove
+   the old box file and vagrant will download the latest one the next time you
+   `vagrant up` (pick the option bellow that suits your local setup).
 
-By setting the `$expose_docker_tcp` configuration value you can forward a local TCP port to docker on
-each CoreOS machine that you launch. The first machine will be available on the port that you specify
-and each additional machine will increment the port by 1.
+	```
+     vagrant box remove coreos --provider vmware_fusion
+     vagrant box remove coreos --provider virtualbox
+     vagrant box remove coreos --provider parallels
+    ```
 
-Follow the [Enable Remote API instructions][coreos-enabling-port-forwarding] to get the CoreOS VM setup to work with port forwarding.
+  - ### Docker Forwarding
 
-[coreos-enabling-port-forwarding]: https://coreos.com/docs/launching-containers/building/customizing-docker/#enable-the-remote-api-on-a-new-socket
+    By setting the `$expose_docker_tcp` configuration value you can forward a local
+    TCP port to docker on each CoreOS machine that you launch. The first machine will
+    be available on the port that you specify and each additional machine will 
+    increment the port by 1.
 
-Then you can then use the `docker` command from your local shell by setting `DOCKER_HOST`:
+     Follow the [Enable Remote API instructions][coreos-enabling-port-forwarding] to 
+     get the CoreOS VM setup to work with port forwarding.
 
-    export DOCKER_HOST=tcp://localhost:2375
+     [coreos-enabling-port-forwarding]: https://coreos.com/docs/launching-containers/building/customizing-docker/#enable-the-remote-api-on-a-new-socket
+
+      Then you can then use the `docker` command from your local shell by setting 
+     **DOCKER_HOST**:
+     
+      ```
+       export DOCKER_HOST=tcp://localhost:2375
+      ```
