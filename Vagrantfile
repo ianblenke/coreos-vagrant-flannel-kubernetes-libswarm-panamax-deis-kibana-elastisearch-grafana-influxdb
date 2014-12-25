@@ -77,6 +77,14 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
           vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
         end
+
+        # supported since vagrant-parallels 1.3.7
+        # https://github.com/Parallels/vagrant-parallels/issues/164
+        config.vm.provider "parallels" do |v|
+          v.customize("post-import", ["set", :id, "--device-add", "serial", "--output", serialFile])
+          v.customize("pre-boot", ["set", :id, "--device-set", "serial0", "--output", serialFile])
+        end
+
       end
 
       if $expose_docker_tcp
