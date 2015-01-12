@@ -38,6 +38,11 @@ Vagrant.configure("2") do |config|
     override.vm.box_url = "http://%s.release.core-os.net/amd64-usr/current/coreos_production_vagrant_vmware_fusion.json" % $update_channel
   end
 
+  config.vm.provider :parallels do |_, override|
+    override.vm.box = 'yungsang/coreos-%s' % $update_channel
+    override.vm.box_version = ">= 1.4.7"
+  end
+
   config.vm.provider :virtualbox do |v|
     # On VirtualBox, we don't have guest additions or a functional vboxsf
     # in CoreOS, so tell Vagrant that so it can be smarter.
@@ -72,6 +77,14 @@ Vagrant.configure("2") do |config|
           vb.customize ["modifyvm", :id, "--uart1", "0x3F8", "4"]
           vb.customize ["modifyvm", :id, "--uartmode1", serialFile]
         end
+
+        # supported since vagrant-parallels 1.3.7
+        # https://github.com/Parallels/vagrant-parallels/issues/164
+        config.vm.provider "parallels" do |v|
+          v.customize("post-import", ["set", :id, "--device-add", "serial", "--output", serialFile])
+          v.customize("pre-boot", ["set", :id, "--device-set", "serial0", "--output", serialFile])
+        end
+
       end
 
       if $expose_docker_tcp
@@ -88,10 +101,14 @@ Vagrant.configure("2") do |config|
         vb.cpus = $vb_cpus
       end
 
-      ip = "172.17.8.#{i+100}"
-      config.vm.network :private_network, ip: ip
+      config.vm.provider :parallels do |vb|
+        vb.memory = $vb_memory
+        vb.cpus = $vb_cpus
+      end
 
-      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
+      config.vm.network :private_network, ip: "172.17.8.#{i+100}"
+
+      # enables NFS for sharing the host machine into the coreos-vagrant VM.
       config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true, :mount_options => ['nolock,vers=2,udp'] if ENV['USE_SHARED_FOLDER']
 
       if File.exist?(CLOUD_CONFIG_PATH)
