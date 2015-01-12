@@ -3,6 +3,12 @@ Description=Fail2ban systemd monitoring service
 After=docker.service
 
 [Service]
+User=core
+TimeoutStartSec=10m
+EnvironmentFile=/etc/environment
+ExecStartPre=-/usr/bin/docker kill fail2ban
+ExecStartPre=-/usr/bin/docker rm fail2ban
+ExecStartPre=/usr/bin/docker pull ianblenke/fail2ban
 ExecStart=/usr/bin/docker run --name fail2ban --privileged --net=host -v /run/systemd:/var/run/systemd ianblenke/fail2ban
 ExecStop=/usr/bin/docker kill fail2ban
 ExecStop=/usr/bin/docker rm fail2ban
