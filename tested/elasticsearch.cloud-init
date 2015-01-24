@@ -1,0 +1,66 @@
+#cloud-config
+
+coreos:
+  units:
+    - name: elasticsearch-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/tmp/elasticsearch-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/elasticsearch@.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/tmp/elasticsearch-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /tmp/elasticsearch-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      set -ex
+      cp -f /tmp/elasticsearch@.service /tmp/elasticsearch@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/elasticsearch@$(hostname).service
+      /usr/bin/docker pull dockerfile/elasticsearch:latest
+      /usr/bin/fleetctl start /tmp/elasticsearch@$(hostname).service
+  - path: /tmp/elasticsearch@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=ElasticSearch service
+      After=docker.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+
+      ExecStartPre=/usr/bin/mkdir -p /data/elasticsearch
+
+      ExecStart=/bin/bash -xc "exec /usr/bin/docker run --name elasticsearch \
+                                                        --hostname elasticsearch-$(hostname) \
+                                                        --publish 9200:9200 \
+                                                        --publish 9300:9300 \
+                                                        --volume /data/elasticsearch:/data \
+                                                        dockerfile/elasticsearch:latest \
+                                                       /elasticsearch/bin/elasticsearch --node.name=elasticsearch-$(hostname) \
+                                                                                        --cluster.name=logstash \
+                                                                                        --network.publish_host=${COREOS_PRIVATE_IPV4} \
+                                                                                        --discovery.zen.ping.multicast.enabled=false \
+                                                                                        --discovery.zen.ping.multicast.enabled=false \
+                                                                                        --gateway.recover_after_nodes=1 \
+                                                                                        --gateway.recover_after_time=5m  \
+                                                                                        --gateway.expected_nodes=2 \
+                                                                                        --gateway.local.auto_import_dangled=yes \
+                                                                                        --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)"
+
+      ExecStop=/usr/bin/docker stop elasticsearch
+      ExecStop=/usr/bin/docker rm elasticsearch
+
+      Restart=on-failure
+      TimeoutSec=300
+      RestartSec=10
+
+      [X-Fleet]

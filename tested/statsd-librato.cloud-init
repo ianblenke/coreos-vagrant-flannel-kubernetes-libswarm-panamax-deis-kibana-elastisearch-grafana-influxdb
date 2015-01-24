@@ -1,0 +1,49 @@
+#cloud-config
+coreos:
+  units:
+    - name: statsd-librato-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/statsd-librato-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/statsd-librato@.service
+
+        [Service]
+        ExecStart=/srv/statsd-librato-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /srv/statsd-librato-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      cp /srv/statsd-librato@.service /srv/statsd-librato@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/statsd-librato@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/statsd-librato@$(hostname).service
+      /usr/bin/fleetctl start /srv/statsd-librato@$(hostname).service
+  - path: /srv/statsd-librato@.service
+    permissions: 0644
+    owner: root
+    content: |
+        [Unit]
+        Description=StatsD service that sends to Librato on the backend
+        After=docker.service
+
+        [Service]
+        ExecStartPre=/usr/bin/docker pull ianblenke/statsd-librato
+        ExecStart=/usr/bin/docker run --name statsd-librato -p 8125:8125/udp -e LIBRATO_USER=YOURLIBRATOUSEREMAILACCOUNT -e LIBRATO_TOKEN=YOURLIBRATOTOKEN -e LIBRATO_SOURCE=your.cluster ianblenke/statsd-librato
+        ExecStop=/usr/bin/docker kill statsd-librato
+        ExecStop=/usr/bin/docker rm statsd-librato
+        Restart=on-failure
+        TimeoutSec=10
+        RestartSec=5
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [X-Fleet]
