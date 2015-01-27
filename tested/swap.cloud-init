@@ -1,0 +1,53 @@
+#cloud-config
+coreos:
+  units:
+    - name: swap-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/swap-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/swap@.service
+
+        [Service]
+        ExecStart=/srv/swap-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /srv/swap-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      cp /srv/swap@.service /srv/swap@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/swap@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/swap@$(hostname).service
+      /usr/bin/fleetctl start /srv/swap@$(hostname).service
+  - path: /srv/swap@.service
+    permissions: 0644
+    owner: root
+    content: |
+        [Unit]
+        Description=Turn on swap
+
+        [Service]
+        Type=oneshot
+        Environment="SWAPFILE=/8GiB.swap"
+        RemainAfterExit=true
+        ExecStartPre=/usr/bin/touch ${SWAPFILE}
+        ExecStartPre=/usr/bin/fallocate -l 8192m ${SWAPFILE}
+        ExecStartPre=/usr/bin/chmod 600 ${SWAPFILE}
+        ExecStartPre=/usr/bin/chattr +C ${SWAPFILE}
+        ExecStartPre=/usr/sbin/mkswap ${SWAPFILE}
+        ExecStartPre=/usr/sbin/losetup -f ${SWAPFILE}
+        ExecStart=/usr/bin/sh -c "/sbin/swapon $(/usr/sbin/losetup -j ${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+        ExecStop=/usr/bin/sh -c "/sbin/swapoff $(/usr/sbin/losetup -j ${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+        ExecStopPost=/usr/bin/sh -c "/usr/sbin/losetup -d $(/usr/sbin/losetup -j ${SWAPFILE} | /usr/bin/cut -d : -f 1)"
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [X-Fleet]

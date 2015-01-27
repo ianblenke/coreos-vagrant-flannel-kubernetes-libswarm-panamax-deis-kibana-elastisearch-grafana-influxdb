@@ -1,0 +1,63 @@
+#cloud-config
+coreos:
+  units:
+    - name: nrsysmond-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/nrsysmond-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/nrsysmond@.service
+        ConditionFileNotEmpty=/etc/nrsysmond.cfg
+
+        [Service]
+        ExecStart=/srv/nrsysmond-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /srv/nrsysmond-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      cp /srv/nrsysmond@.service /srv/nrsysmond@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/nrsysmond@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/nrsysmond@$(hostname).service
+      /usr/bin/fleetctl start /srv/nrsysmond@$(hostname).service
+  - path: /srv/update_nrsysmond.sh
+    permissions: 0744
+    owner: root
+    content: |
+      #!/bin/bash +x
+      VERSION=$(curl -Ls https://download.newrelic.com/server_monitor/release/ | grep linux | cut -d- -f3)
+      ARCH=x64
+      TARBALL=https://download.newrelic.com/server_monitor/release/newrelic-sysmond-${VERSION}-linux.tar.gz
+      curl $TARBALL | tar xvzf - -C /tmp
+      cp /tmp/newrelic-sysmond-${VERSION}-linux/daemon/nrsysmond.${ARCH} /srv/nrsysmond
+      rm -rf /tmp/$TARBALL /tmp/newrelic-sysmond-${VERSION}-linux
+  - path: /srv/nrsysmond@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=nrsysmond
+      After=etcd.service
+
+      [Service]
+      Restart=always
+      ExecStartPre=/srv/update_nrsysmond.sh
+      ExecStart=/srv/nrsysmond -f -n %H -c /etc/nrsysmond.cfg
+      ExecStop=/usr/bin/kill $(cat /var/run/nrsysmond.pid)
+
+      [X-Fleet]
+  - path: /etc/nrsysmond.cfg
+    permissions: 0644
+    owner: root
+    content: |
+        logfile = /var/log/nrsysmond.log
+        loglevel = warning
+        pidfile = /var/run/nrsysmond.pid
+        license_key = YOURNEWRELICLICENSEKEYGOESHERE

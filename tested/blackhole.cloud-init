@@ -1,0 +1,106 @@
+#cloud-config
+coreos:
+  units:
+    - name: blackhole-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/blackhole-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/blackhole@.service
+
+        [Service]
+        ExecStart=/srv/blackhole-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /srv/blackhole-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      cp /srv/blackhole@.service /srv/blackhole@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/blackhole@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/blackhole@$(hostname).service
+      /usr/bin/fleetctl start /srv/blackhole@$(hostname).service
+  - path: /srv/blackhole.sh
+    permissions: 0755
+    owner: root
+    content: |
+      #!/bin/bash
+      set -eo pipefail
+      
+      case $1 in
+        stop)
+          if [ ! -f /var/run/blackhole.pid ] ; then
+            echo "Lack of /var/run/blackhole.pid means there is nothing to stop" 1>&2
+            exit 1 
+          fi
+          kill $(cat /var/run/blackhole.pid)
+        ;;
+        start)
+          if [ -f /var/run/blackhole.pid ] ; then
+            echo "According to /var/run/blackhole.pid, this script is already running. Exiting." 1>&2
+            exit 1 
+          fi
+          echo $BASHPID > /var/run/blackhole.pid
+          (
+            last --time-format notime -awi | grep pts | cut -c38-
+            fleetctl list-machines --fields=ip -no-legend
+          ) | sort | uniq | while read ip ; do if ! etcdctl get /blackhole/whitelist/$ip > /dev/null 2>&1 ; then date | etcdctl set /blackhole/whitelist/$ip; fi; done
+          (
+            /usr/bin/journalctl -f -o json | \
+               grep --line-buffered sshd | \
+               grep --line-buffered -e 'Disconnecting: Too many authentication failures\|Failed password for' | \
+               sed -u -e 's/^.*sshd@.*:22-//' -e 's/:.*$//' | \
+               while read ip; do \
+                 if ! etcdctl get /blackhole/whitelist/$ip > /dev/null 2>&1; then \
+                   date | etcdctl set --ttl 3600 /blackhole/blacklist/$ip ; \
+                   ip route add blackhole $ip 2>/dev/null | true ; \
+                 fi ; \
+               done &
+            CHILD_PID=$!
+            (( JOURNALCTL_PID = $CHILD_PID + 1 ))
+            _term() {
+              echo Killing journalctl pid $JOURNALCTL_PID 2>&1
+              kill $JOURNALCTL_PID
+              exit 0
+            }
+            trap _term SIGINT SIGTERM EXIT
+            wait $CHILD_PID
+          ) &
+          CHILD_PID=$!
+          (( BLACKHOLE_PID = $CHILD_PID + 1 ))
+          _term() {
+            echo Killing blackhole pid $BLACKHOLE_PID 2>&1
+            kill $BLACKHOLE_PID > /dev/null 2>&1 || true
+            rm -f /var/run/blackhole.pid
+            exit 0
+          }
+          trap _term SIGINT SIGTERM EXIT
+          echo $BASHPID > /var/run/blackhole.pid
+          wait $CHILD_PID
+        ;;
+        *)
+          echo "Unknown argument: '$1' Did you mean 'start' or 'stop'?"
+          exit 1;
+      esac
+  - path: /srv/blackhole@.service
+    permissions: 0644
+    owner: root
+    content: |
+        [Unit]
+        Description=Turn on automated addition of blackhole routes for sshd attackers
+
+        [Service]
+        ExecStart=/srv/blackhole.sh start
+        ExecStop=/srv/blackhole.sh stop
+        Restart=always
+
+        [Install]
+        WantedBy=multi-user.target
+
+        [X-Fleet]

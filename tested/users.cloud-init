@@ -1,0 +1,19 @@
+#cloud-config
+
+users:
+  - name: iblenke
+    coreos-ssh-import-github: ianblenke
+    groups:
+      - sudo
+      - docker
+  - name: jplussier
+    coreos-ssh-import-github: jonpaul
+    groups:
+      - sudo
+      - docker
+  - name: rnamballa
+    coreos-ssh-import-github: rnamballa
+    groups:
+      - sudo
+      - docker
+

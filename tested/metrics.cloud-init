@@ -1,0 +1,174 @@
+#cloud-config
+coreos:
+  units:
+    - name: cadvisor-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/tmp/cadvisor-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/cadvisor@.service
+
+        [Service]
+        ExecStart=/tmp/cadvisor-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+    - name: grafana-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/tmp/grafana-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/grafana@.service
+
+        [Service]
+        EnvironmentFile=/etc/environment
+        ExecStart=/tmp/grafana-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+    - name: influxdb-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/tmp/influxdb-create-fleet-units.sh
+        ConditionFileNotEmpty=/tmp/influxdb@.service
+
+        [Service]
+        ExecStart=/tmp/influxdb-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /tmp/cadvisor-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull google/cadvisor
+      cp /tmp/cadvisor@.service /tmp/cadvisor@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/cadvisor@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /tmp/cadvisor@$(hostname).service
+      /usr/bin/fleetctl start /tmp/cadvisor@$(hostname).service
+  - path: /tmp/cadvisor@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      [Unit]
+      Description=cAdvisor Service
+      After=influxdb@.service
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStart=/usr/bin/docker run --name cadvisor \
+                                    --volume=/var/run:/var/run:rw \
+                                    --volume=/sys:/sys:ro \
+                                    --volume=/var/lib/docker/:/var/lib/docker:ro \
+                                    --publish=4194:4194 \
+                                    google/cadvisor --logtostderr \
+                                                    --port=4194 \
+                                                    -storage_driver=influxdb \
+                                                    -log_dir=/ \
+                                                    -storage_driver_host=${COREOS_PRIVATE_IPV4}:8086 \
+                                                    -storage_driver_db=cadvisor \
+                                                    -storage_driver_user=root \
+                                                    -storage_driver_password=root \
+                                                    -storage_driver_secure=false
+
+      ExecStop=/usr/bin/docker stop -t 2 cadvisor
+      ExecStop=/usr/bin/docker rm cadvisor
+
+      [X-Fleet]
+  - path: /tmp/grafana-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull vish/k8s_grafana
+      cp /tmp/grafana@.service /tmp/grafana@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/grafana@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /tmp/grafana@$(hostname).service
+      sed -i -e "s/^After=elasticsearch@.*$/After=elasticsearch@$(hostname).service/" /tmp/grafana@$(hostname).service
+      /usr/bin/fleetctl start /tmp/grafana@$(hostname).service
+  - path: /tmp/grafana@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      # Based on https://github.com/GoogleCloudPlatform/heapster/tree/master/influx-grafana/grafana
+      [Unit]
+      Description=Grafana Service
+      After=elasticsearch@.service
+      After=influxdb@.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStart=/bin/bash -c "/usr/bin/docker run --name grafana \
+                                                  --publish 10080:80 \
+                                                  -e HTTP_USER=admin \
+                                                  -e HTTP_PASS=admin \
+               		                          -e INFLUXDB_HOST=${COREOS_PRIVATE_IPV4} \
+                                                  -e INFLUXDB_PORT=8086 \
+                                                  -e INFLUXDB_NAME=cadvisor \
+                                                  -e INFLUXDB_USER=root \
+                                                  -e INFLUXDB_PASS=root \
+                                                  -e ELASTICSEARCH_PROTO=http \
+                                                  -e ELASTICSEARCH_HOST=${COREOS_PRIVATE_IPV4} \
+                                                  -e ELASTICSEARCH_PORT=9200 \
+                                                  -e ELASTICSEARCH_USER='**None**' \
+                                                  -e ELASTICSEARCH_PASS='**None**' \
+                                                  vish/k8s_grafana
+      ExecStop=/usr/bin/docker stop -t 2 grafana
+      ExecStop=/usr/bin/docker rm grafana
+
+      [X-Fleet]
+  - path: /tmp/influxdb-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      /usr/bin/docker pull tutum/influxdb
+      cp /tmp/influxdb@.service /tmp/influxdb@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /tmp/influxdb@$(hostname).service
+      /usr/bin/fleetctl start /tmp/influxdb@$(hostname).service
+  - path: /tmp/influxdb@.service
+    permissions: '0644'
+    owner: root
+    content: |
+      # Based on https://github.com/GoogleCloudPlatform/heapster/tree/master/influx-grafana/influxdb
+      [Unit]
+      Description=InfluxDB Service
+      After=docker.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      Restart=always
+
+      ExecStartPre=-/usr/bin/mkdir -p /data/influxdb
+      ExecStart=/bin/bash -c "exec /usr/bin/docker run --name influxdb \
+                          --publish 8083:8083 \
+                          --publish 8086:8086 \
+                          --publish 8090:8090 \
+                          --publish 8099:8099 \
+                          --volume /data/influxdb:/opt/influxdb/shared/data \
+                          -e SSL_SUPPORT=true \
+                          -e DEFAULT_DB=cadvisor \
+                          -e REPLI_FACTOR=3 \
+                          -e INFLUXDB_INIT_PWD=root \
+                          -e SEEDS=$(fleetctl list-machines -full -no-legend -fields=machine,ip | grep -v $(cat /etc/machine-id) | awk '{print $2}' | sed -e 's/^/\"/' -e 's/$/:8090\"/' | paste -s -d, ) \
+                          -e FORCE_HOSTNAME=influxdb-$(hostname) \
+                          tutum/influxdb"
+      ExecStop-=/usr/bin/docker stop -t 2 influxdb
+      ExecStop=/usr/bin/docker rm influxdb
+
+      [X-Fleet]

@@ -6,7 +6,7 @@ Technically, flannel isn't neccessary to get coreos working with kubernetes and 
 
 You may want to read Kelsey Hightower's [Running Kubernetes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernetes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
 
-Kelsey assumes VMWare Fusion above. As the [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
+Kelsey assumes VMWare Fusion above. [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
 
 The start.sh script included runs through the steps in an automated fashion.
 
