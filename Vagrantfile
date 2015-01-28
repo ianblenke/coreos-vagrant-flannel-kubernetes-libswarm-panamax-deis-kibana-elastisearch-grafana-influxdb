@@ -40,7 +40,7 @@ Vagrant.configure("2") do |config|
 
   config.vm.provider :parallels do |vb, override|
     override.vm.box = 'AntonioMeireles/coreos-%s' % $update_channel
-    override.vm.box_url = nil
+    override.vm.box_url = 'https://vagrantcloud.com/AntonioMeireles/coreos-%s' % $update_channel
   end
 
   config.vm.provider :virtualbox do |v|
