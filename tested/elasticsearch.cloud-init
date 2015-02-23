@@ -44,6 +44,8 @@ write_files:
                                                         --publish 9200:9200 \
                                                         --publish 9300:9300 \
                                                         --volume /data/elasticsearch:/data \
+                                                        -e MAX_OPEN_FILES=1048576 \
+                                                        -e ES_HEAP_SIZE=4g \
                                                         dockerfile/elasticsearch:latest \
                                                        /elasticsearch/bin/elasticsearch --node.name=elasticsearch-$(hostname) \
                                                                                         --cluster.name=logstash \
