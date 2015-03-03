@@ -6,7 +6,7 @@ Technically, flannel isn't neccessary to get coreos working with kubernetes and 
 
 You may want to read Kelsey Hightower's [Running Kubernetes Example on CoreOS, Part 1](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-1/) and [Running Kubernetes Example on CoreOS, Part 2](https://coreos.com/blog/running-kubernetes-example-on-CoreOS-part-2/) before continuing.
 
-Kelsey assumes VMWare Fusion above. [CoreOS Vagrant](https://github.com/coreos/coreos-vagrant) works with VirtualBox or VMWare Fusion.
+Kelsey assumes VMWare Fusion above. This fork works with VirtualBox, VMWare Fusion and Parallels.
 
 The start.sh script included runs through the steps in an automated fashion.
 
@@ -26,7 +26,7 @@ As this is a binary, this is NOT being run automatically as part of the start.sh
 While this is an official google kubernetes binary via an HTTPS wget, there is no signature verification.
 This works both with OS/X Darwin and with Linux.
 
-The default kubeletes apiserver host is "localhost" and the default port is "8080". 
+The default kubeletes apiserver host is "localhost" and the default port is "8080".
 You may need to port-forward 8080 to use kubecfg locally if not run on the master.
 
 To list which node the master/controller landed on, run this:
@@ -86,8 +86,8 @@ The config.rb referenced by the Vagrantfile will populate the `ETCD_DISCOVERY_UR
 
 All nodes will start with the generated user-data file.
 
-In earlier version of this project, start.sh would vagrant ssh in and install the master/controller systemd units for kubernetes. 
-To keep things clean, the "master" node for kubernetes is now chosen by fleet when the unit is scheduled. 
+In earlier version of this project, start.sh would vagrant ssh in and install the master/controller systemd units for kubernetes.
+To keep things clean, the "master" node for kubernetes is now chosen by fleet when the unit is scheduled.
 
 The only hard-coded IP is the flannel subnet, as embedded in minion.yml, which is set to 172.30.0.0/16 at the moment so as not to collide with any other RFC1918 address spaces that are common.
 All other IP information is discovered via vagrant ssh into the coreos nodes.
@@ -220,11 +220,11 @@ After setup is complete you will have a single CoreOS virtual machine running on
 	There are three _providers_ for Vagrant with slightly different instructions.
 	Follow one of the following three options:
 
-	 - **VirtualBox Provider**
+	- **VirtualBox Provider**
 
 	   The VirtualBox provider is the default Vagrant provider.
 	   Use this if you are unsure.
-  		 
+
   	   ```
 	    vagrant up
 		vagrant ssh
@@ -254,7 +254,7 @@ After setup is complete you will have a single CoreOS virtual machine running on
 	  from Hashicorp that is needed if you are running
 	  [VMware](https://docs.vagrantup.com/v2/vmware/index.html)
 	  instead of [VirtualBox][virtualbox].
-	  using it is as easy as 
+	  using it is as easy as
 
       ```
 	   vagrant up --provider vmware_fusion
@@ -267,7 +267,7 @@ After setup is complete you will have a single CoreOS virtual machine running on
 	and (re)launch the instance
 
     ``vagrant ssh`` connects you to the virtual machine.
-    
+
     Configuration is stored in the directory so you can always return to this machine
     by executing vagrant ssh from the directory where the Vagrantfile was located.
 
@@ -291,7 +291,7 @@ After setup is complete you will have a single CoreOS virtual machine running on
 	project directory. coreos-cloudinit simplifies the provisioning process through
 	the use of a script or cloud-config document.
     To get started, copy `user-data.sample` to `user-data` and make any necessary
-    modifications. Check out the 
+    modifications. Check out the
     [coreos-cloudinit documentation][coreos-cloudinit] to learn about the available
     features.
 
@@ -306,7 +306,7 @@ After setup is complete you will have a single CoreOS virtual machine running on
 
    Launching a CoreOS cluster on Vagrant is as simple as configuring `$num_instances`
    in a `config.rb` file to 3 (or more!) and running `vagrant up`.
-   Make sure you provide a fresh discovery URL in your `user-data` if you wish to 
+   Make sure you provide a fresh discovery URL in your `user-data` if you wish to
    bootstrap etcd in your cluster.
 
  - ### New Box Versions
@@ -327,17 +327,17 @@ After setup is complete you will have a single CoreOS virtual machine running on
 
     By setting the `$expose_docker_tcp` configuration value you can forward a local
     TCP port to docker on each CoreOS machine that you launch. The first machine will
-    be available on the port that you specify and each additional machine will 
+    be available on the port that you specify and each additional machine will
     increment the port by 1.
 
-     Follow the [Enable Remote API instructions][coreos-enabling-port-forwarding] to 
+     Follow the [Enable Remote API instructions][coreos-enabling-port-forwarding] to
      get the CoreOS VM setup to work with port forwarding.
 
      [coreos-enabling-port-forwarding]: https://coreos.com/docs/launching-containers/building/customizing-docker/#enable-the-remote-api-on-a-new-socket
 
-      Then you can then use the `docker` command from your local shell by setting 
+      Then you can then use the `docker` command from your local shell by setting
      **DOCKER_HOST**:
-     
+
       ```
        export DOCKER_HOST=tcp://localhost:2375
       ```
