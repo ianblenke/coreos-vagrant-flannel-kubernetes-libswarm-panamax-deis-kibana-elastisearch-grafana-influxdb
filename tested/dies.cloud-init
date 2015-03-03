@@ -1,0 +1,8 @@
+#cloud-config
+
+write_files:
+  - path: /etc/profile.d/dies.sh
+    permissions: 0644
+    owner: root
+    content: |
+      alias dies=deis
