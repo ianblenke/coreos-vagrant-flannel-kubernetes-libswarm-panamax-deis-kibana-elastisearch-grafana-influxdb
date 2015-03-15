@@ -1,0 +1,135 @@
+#cloud-config
+coreos:
+  units:
+    - name: shipyard-deis-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/shipyard-deis-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/shipyard-rethinkdb@.service
+        ConditionFileNotEmpty=/srv/shipyard-rethinkdb-publisher@.service
+        ConditionFileNotEmpty=/srv/shipyard-controller@.service
+        ConditionFileNotEmpty=/srv/shipyard-controller-publisher@.service
+
+        [Service]
+        ExecStart=/srv/shipyard-deis-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /etc/systemd/system/docker-tcp.socket
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Docker Socket for the API
+
+      [Socket]
+      ListenStream=2375
+      BindIPv6Only=both
+      Service=docker.service
+
+      [Install]
+      WantedBy=sockets.target
+  - path: /etc/systemd/system/docker.service.d/30-ListenStream.conf
+    permissions: 0644
+    owner: root
+    content: |
+      [Socket]
+      ListenStream=2375
+  - path: /srv/shipyard-deis-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      mkdir -p /srv
+
+      for servicename in shipyard-controller-publisher shipyard-controller shipyard-rethinkdb-publisher shipyard-rethinkdb ; do
+        cp /srv/$servicename@.service /srv/$servicename@$(hostname).service
+        sed -i -e "s/%i/$(hostname)/" /srv/$servicename@$(hostname).service
+        ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/$servicename@$(hostname).service
+        /usr/bin/fleetctl start /srv/$servicename@$(hostname).service
+      done
+  - path: /srv/shipyard-controller-publisher@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Publish shipyard-controller@%i to etcd for deis-router
+      After=docker.service
+      BindsTo=shipyard-controller@%i.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      ExecStart=/bin/sh -c "while true; do etcdctl set /deis/services/shipyard/shipyard-controller@%i ${COREOS_PRIVATE_IPV4}:38080 --ttl 60; sleep 45; done"
+      ExecStop=/usr/bin/etcdctl rm /deis/services/shipyard/shipyard-controller@%i
+
+      [X-Fleet]
+  - path: /srv/shipyard-controller@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Run the shipyard-controller@%i service
+      After=docker.service
+      BindsTo=shipyard-rethinkdb@%i.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      TimeoutStartSec=0
+      ExecStartPre=-/usr/bin/docker kill shipyard-controller
+      ExecStartPre=-/usr/bin/docker rm shipyard-controller
+      ExecStartPre=/usr/bin/docker pull shipyard/shipyard
+      ExecStart=/bin/sh -c '/usr/bin/docker run --name shipyard-controller -p 38080:8080 shipyard/shipyard -disable-usage-info -rethinkdb-addr=${COREOS_PRIVATE_IPV4}:28015'
+      ExecStop=/usr/bin/docker stop shipyard-controller
+
+      [X-Fleet]
+  - path: /srv/shipyard-rethinkdb-publisher@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Announce shipyard-rethinkdb@%i
+      BindsTo=shipyard-rethinkdb@%i.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      ExecStart=/bin/sh -c "while true; do etcdctl set /deis/services/shipyard-rethinkdb/shipyard-rethinkdb@%i ${COREOS_PRIVATE_IPV4}:18080 --ttl 60; sleep 45; done"
+      ExecStop=/usr/bin/etcdctl rm /deis/services/shipyard-rethinkdb/shipyard-rethinkdb@%i
+
+      [X-Fleet]
+  - path: /srv/shipyard-rethinkdb@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Run the rethinkdb@%i database service
+      After=docker.service
+
+      [Service]
+      EnvironmentFile=/etc/environment
+      TimeoutStartSec=0
+      ExecStartPre=-/usr/bin/docker kill shipyard-rethinkdb
+      ExecStartPre=-/usr/bin/docker rm shipyard-rethinkdb
+      ExecStartPre=/usr/bin/docker pull rethinkdb
+      ExecStartPre=/bin/sh -c "docker inspect shipyard-rethinkdb-data >/dev/null 2>&1 || docker run --name shipyard-rethinkdb-data -v /data --entrypoint /bin/true rethinkdb"
+      ExecStart=/bin/sh -c '/usr/bin/docker run                      \
+          --name shipyard-rethinkdb                                  \
+          -p ${COREOS_PRIVATE_IPV4}:18080:18080                      \
+          -p ${COREOS_PRIVATE_IPV4}:28015:28015                      \
+          -p ${COREOS_PRIVATE_IPV4}:29015:29015                      \
+          --volumes-from shipyard-rethinkdb-data                     \
+          rethinkdb                                                  \
+          rethinkdb --bind all                                       \
+          --http-port 18080                                          \
+          --canonical-address ${COREOS_PRIVATE_IPV4}                 \
+          $(/usr/bin/etcdctl ls /announce/services |                 \
+              xargs -I {} /usr/bin/etcdctl get {} |                  \
+              sed s/^/"--join "/ | sed s/$/":29015"/ |               \
+              tr "\n" " ")'
+      ExecStop=/usr/bin/docker stop shipyard-rethinkdb
+
+      [X-Fleet]
