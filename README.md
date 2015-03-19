@@ -256,15 +256,21 @@ After setup is complete you will have a single CoreOS virtual machine running on
 	  instead of [VirtualBox][virtualbox].
 	  using it is as easy as
 
+      VMware Fusion:
       ```
-	   vagrant up --provider vmware_fusion
-	   vagrant ssh
-	  ```
+      vagrant up --provider vmware_fusion
+      vagrant ssh
+      ```
 
+      VMware Workstation:
+      ```
+      vagrant up --provider vmware_workstation
+      vagrant ssh
+      ```
 
+      ``vagrant up`` triggers vagrant to download the CoreOS image (if necessary) and (re)launch the instance
 
-	``vagrant up`` triggers vagrant to download the CoreOS image (if necessary)
-	and (re)launch the instance
+4) Get started [using CoreOS][using-coreos]
 
     ``vagrant ssh`` connects you to the virtual machine.
 
@@ -317,11 +323,12 @@ After setup is complete you will have a single CoreOS virtual machine running on
    the old box file and vagrant will download the latest one the next time you
    `vagrant up` (pick the option bellow that suits your local setup).
 
-	```
-     vagrant box remove coreos --provider vmware_fusion
-     vagrant box remove coreos --provider virtualbox
-     vagrant box remove coreos --provider parallels
-    ```
+```
+vagrant box remove coreos --provider vmware_fusion
+vagrant box remove coreos --provider vmware_workstation
+vagrant box remove coreos --provider virtualbox
+vagrant box remove coreos --provider parallels
+```
 
   - ### Docker Forwarding
 
