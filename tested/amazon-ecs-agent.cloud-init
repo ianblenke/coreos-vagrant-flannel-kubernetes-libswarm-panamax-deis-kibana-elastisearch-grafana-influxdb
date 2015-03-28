@@ -1,0 +1,53 @@
+#cloud-config
+# Borrowed from http://ian.blenke.com/blog/2015/03/10/deploying-amazon-ecs-on-coreos/
+coreos:
+  units:
+    - name: amazon-ecs-agent-create-fleet-units.service
+      command: start
+      content: |
+        [Unit]
+        After=docker.service
+        ConditionFileIsExecutable=/srv/amazon-ecs-agent-create-fleet-units.sh
+        ConditionFileNotEmpty=/srv/amazon-ecs-agent@.service
+
+        [Service]
+        ExecStart=/srv/amazon-ecs-agent-create-fleet-units.sh
+        RemainAfterExit=no
+        Type=oneshot
+write_files:
+  - path: /srv/amazon-ecs-agent-create-fleet-units.sh
+    permissions: '0755'
+    owner: root
+    content: |
+      #!/bin/bash
+      source /etc/environment
+      set -ex
+
+      mkdir -p /etc/ecs
+      cp /srv/amazon-ecs-agent@.service /srv/amazon-ecs-agent@$(hostname).service
+      ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/amazon-ecs-agent@$(hostname).service
+      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/amazon-ecs-agent@$(hostname).service
+      /usr/bin/fleetctl start /srv/amazon-ecs-agent@$(hostname).service
+  - path: /etc/environment.aws
+    permissions: 0644
+    owner: root
+    content: |
+      ECS_CLUSTER=MyAppCluster
+      ECS_LOGLEVEL=warn
+  - path: /srv/amazon-ecs-agent@.service
+    permissions: 0644
+    owner: root
+    content: |
+      [Unit]
+      Description=Amazon ECS Agent
+      After=docker.service
+      Requires=docker.service
+
+      [Service]
+      EnvironmentFile=/etc/environment.aws
+      ExecStartPre=-/usr/bin/docker kill ecs-agent
+      ExecStartPre=-/usr/bin/docker rm ecs-agent
+      ExecStartPre=/usr/bin/docker pull amazon/amazon-ecs-agent
+      ExecStartPre=/bin/bash -c "/usr/bin/echo ${ECS_CLUSTER} > /etc/ecs/ecs.config"
+      ExecStart=/usr/bin/docker run --name ecs-agent --env=ECS_CLUSTER=${ECS_CLUSTER} --env=ECS_LOGLEVEL=${ECS_LOGLEVEL} --publish=127.0.0.1:51678:51678 --volume=/var/run/docker.sock:/var/run/docker.sock amazon/amazon-ecs-agent
+      ExecStop=/usr/bin/docker stop ecs-agent

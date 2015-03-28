@@ -43,20 +43,20 @@ write_files:
                                                         --hostname elasticsearch-$(hostname) \
                                                         --publish 9200:9200 \
                                                         --publish 9300:9300 \
-                                                        --volume /data/elasticsearch:/data \
+                                                        --volume /data/elasticsearch:/usr/share/elasticsearch/data \
                                                         -e MAX_OPEN_FILES=1048576 \
                                                         -e ES_HEAP_SIZE=4g \
-                                                        dockerfile/elasticsearch:latest \
-                                                       /elasticsearch/bin/elasticsearch --node.name=elasticsearch-$(hostname) \
-                                                                                        --cluster.name=logstash \
-                                                                                        --network.publish_host=${COREOS_PRIVATE_IPV4} \
-                                                                                        --discovery.zen.ping.multicast.enabled=false \
-                                                                                        --discovery.zen.ping.multicast.enabled=false \
-                                                                                        --gateway.recover_after_nodes=1 \
-                                                                                        --gateway.recover_after_time=5m  \
-                                                                                        --gateway.expected_nodes=2 \
-                                                                                        --gateway.local.auto_import_dangled=yes \
-                                                                                        --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)"
+                                                        elasticsearch
+                                                        elasticsearch --node.name=elasticsearch-$(hostname) \
+                                                                      --cluster.name=logstash \
+                                                                      --network.publish_host=${COREOS_PRIVATE_IPV4} \
+                                                                      --discovery.zen.ping.multicast.enabled=false \
+                                                                      --discovery.zen.ping.multicast.enabled=false \
+                                                                      --gateway.recover_after_nodes=1 \
+                                                                      --gateway.recover_after_time=5m  \
+                                                                      --gateway.expected_nodes=2 \
+                                                                      --gateway.local.auto_import_dangled=yes \
+                                                                      --discovery.zen.ping.unicast.hosts=$(fleetctl list-machines --fields=ip -full=false -no-legend=true | paste -s -d,)"
 
       ExecStop=/usr/bin/docker stop elasticsearch
       ExecStop=/usr/bin/docker rm elasticsearch
