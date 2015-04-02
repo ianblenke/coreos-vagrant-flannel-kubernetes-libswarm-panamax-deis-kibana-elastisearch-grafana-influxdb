@@ -1,0 +1,14 @@
+#cloud-config
+# https://github.com/coreos/flannel
+coreos:
+  units:
+  - name: flannel.service
+    command: start
+    content: |
+      [Unit]
+      Requires=etcd.service
+      After=etcd.service
+
+      [Service]
+      ExecStartPre=-/usr/bin/etcdctl mk /coreos.com/network/config '{"Network":"10.191.0.0/16"}'
+      ExecStart=/opt/bin/flannel
