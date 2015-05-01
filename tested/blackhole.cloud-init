@@ -24,7 +24,6 @@ write_files:
 
       cp /srv/blackhole@.service /srv/blackhole@$(hostname).service
       ( echo -n MachineID=; cat /etc/machine-id ) >> /srv/blackhole@$(hostname).service
-      sed -i -e "s/^After=influxdb@.*$/After=influxdb@$(hostname).service/" /srv/blackhole@$(hostname).service
       /usr/bin/fleetctl start /srv/blackhole@$(hostname).service
   - path: /srv/blackhole.sh
     permissions: 0755
